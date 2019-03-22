@@ -1,0 +1,7 @@
+- [第一部分：学习 Shell](part-1-learning-the-shell)
+  - [第1章：什么是 Shell](part-1-learning-the-shell/01-what-is-the-shell)
+  - [第2章：浏览](part-1-learning-the-shell/02-navigation)
+  - [第3章：探索系统](part-1-learning-the-shell/03-exploring-the-system)
+- [第二部分：配置和环境](part-2-configuration-and-the-environment)
+- [第三部分：普通任务和基本工具](part-3-common-tasks-and-essential-tools)
+- [第四部分：编写 Shell 脚本](part-4-writing-shell-scripts)
