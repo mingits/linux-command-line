@@ -20,7 +20,7 @@
 ```
 这被称为<u>命令提示符</u>（*shell prompt*），无论何时，当 shell 准备接受输入的状态下，命令提示符就会显示在终端模拟器中，它也会有依赖于各种发行版的各种显示变化，不过通常会包含 `username@machinename` （用户名@机器名）紧跟着的是当前的工作目录（`~`），还有一个美元符号（`$`） 。
 
-如果最后一个字符是英镑符号（`#`）而非美元符号（`$`），说明当前终端会话具有<u>超级管理员权限</u>（superuser privileges），这意味着我们是以<u>根用户</u>（root）登录或者我们选择了一个具有超级管理员权限的终端模拟器。
+注意：如果最后一个字符是英镑符号（`#`）而非美元符号（`$`），说明当前终端会话具有<u>超级管理员权限</u>（superuser privileges），这意味着我们是以<u>根用户</u>（root）登录或者我们选择了一个具有超级管理员权限的终端模拟器。
 
 假设到目前为止，一切状况正常，让我们在命令行中随便写一些东西：
 
@@ -110,7 +110,7 @@ Swap:  1052248     104712  947536
 
 作为本书的起始章节，我们接触到了 shell 并第一次看到了命令行，学习了如何开启并结束一个终端会话。我们也了解到如何提交一下简单的命令，并执行一些小的命令行内编辑。看起来不怎么可怕是吧？
 
-## 深入阅读
+## 扩展阅读
 
 - 如需更深入了解 Steve Bourne 和 Bourne Shell，请访问维基百科 [https://en.wikipedia.org/wiki/Steve_Bourne](https://en.wikipedia.org/wiki/Steve_Bourne)
 - 这里是一篇关于 shells 的文章 [https://en.wikipedia.org/wiki/Shell_(computing)](https://en.wikipedia.org/wiki/Shell_(computing))
