@@ -265,3 +265,260 @@ ln -s item link
 
 ## 建一个游乐场
 
+因为我们打算做一些真实的文件操作，所以让我们先建造一个安全的所在去「玩」文件操作命令。首先我们需要在家目录中建一个工作用的目录，名叫 `playground`。
+
+### 创建目录
+
+`mkdir` 用来创建目录。创建目录前，我们要确认是在自己的家目录中，然后再创建一个新目录。
+
+```bash
+[me@linuxbox ~]$ cd
+[me@linuxbox ~]$ mkdir playground
+```
+
+为了让游乐场更有趣，要在目录内新建两个目录 `dir1` 和 `dir2`。我们先切换当前目录到 `playground`，然后再执行一次 `mkdir`。
+
+```bash
+[me@linuxbox ~]$ cd playground
+[me@linuxbox playground]$ mkdir dir1 dir2
+```
+
+注意 `mkdir` 允许接受多个参数，能让我们在一个命令内创建两个目录。
+
+### 复制文件
+
+下一步，让我们放些数据在游乐场中。我们可以用 `cp` 复制文件进文件夹，来复制一个 `/etc` 目录中的 `passwd` 文件。
+
+```bash
+[me@linuxbox playground]$ cp /etc/passwd .
+```
+
+请留意一下我们用一个句点（`.`）来指代我们当前工作目录。我们可以用 `ls` 来看一下目录中的文件。
+
+```bash
+[me@linuxbox playground]$ ls -l
+total 12
+drwxrwxr-x 2 me me 4096 2018-01-10 16:40 dir1
+drwxrwxr-x 2 me me 4096 2018-01-10 16:40 dir2
+-rw-r--r-- 1 me me 1650 2018-01-10 16:07 passwd
+```
+
+现在，仅仅为了好玩，加个选项 `-v` 来看下：
+
+```bash
+[me@linuxbox playground]$ cp -v /etc/passwd .
+`/etc/passwd' -> `./passwd'
+```
+
+`cp` 命令再次执行，但是这次显示了一条简短的信息，指示正在执行的是什么操作。注意 `cp` 命令在覆盖上一次复制的文件时没有给出任何警告。重申一下，这是因为 `cp` 命令假定我们知道自己正在做什么。我们可以加入 `-i` 选项。
+
+```bash
+[me@linuxbox playground]$ cp -i /etc/passwd .
+cp: overwrite `./passwd'?
+```
+
+此时在提示符处回复 `y` 将会导致文件被覆盖，其它任意字符（例如 `n`）都会导致 `cp` 命令保留现有的文件。
+
+### 移动和重命名文件
+
+现在，`passwd` 这个文件名看起来不好玩，来给它改个名：
+
+```bash
+[me@linuxbox playground]$ mv passwd fun
+```
+
+让我们把这个重命名的文件挪到每个目录里转一圈，然后再挪回来。
+
+```bash
+[me@linuxbox playground]$ mv fun dir1
+[me@linuxbox playground]$ mv dir1/fun dir2
+[me@linuxbox playground]$ mv dir2/fun .
+```
+
+现在来看一下移动目录的效果。首先，再次把数据文件移动到 `dir1` 中：
+
+```bash
+[me@linuxbox playground]$ mv fun dir1
+```
+
+然后把 `dir1` 移动到 `dir2` 中，并用 `ls` 命令确认一下：
+
+```bash
+[me@linuxbox playground]$ mv dir1 dir2
+[me@linuxbox playground]$ ls -l dir2
+total 4
+drwxrwxr-x 2 me me 4096 2018-01-11 06:06 dir1
+[me@linuxbox playground]$ ls -l dir2/dir1
+total 4
+-rw-r--r-- 1 me me 1650 2018-01-10 16:33 fun
+```
+
+注意，因为 `dir2` 已经存在，所以 `mv` 命令会将 `dir1` 移动到 `dir2` 中，否则的话，将重命名 `dir1` 为 `dir2`。最后，让我们把文件夹和文件放回原来的地方。
+
+```bash
+[me@linuxbox playground]$ mv dir2/dir1 .
+[me@linuxbox playground]$ mv dir1/fun .
+```
+
+### 创建硬链接
+
+现在我们尝试一些链接。我们先创建一些硬链接：
+
+```bash
+[me@linuxbox playground]$ ln fun fun-hard
+[me@linuxbox playground]$ ln fun dir1/fun-hard
+[me@linuxbox playground]$ ln fun dir2/fun-hard
+```
+
+现在，对于文件 `fun`，我们有四个实例。来看一下目录：
+
+```bash
+[me@linuxbox playground]$ ls -l
+total 16
+drwxrwxr-x 2 me me 4096 2018-01-14 16:17 dir1
+drwxrwxr-x 2 me me 4096 2018-01-14 16:17 dir2
+-rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun
+-rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun-hard
+```
+
+我们注意到， `fun` 和 `fun-hard` 的第二个字段中包含的是 `4`，是对于一个文件的硬链接的编号。记住，一个文件总是存在至少一个硬链接，因为文件名本身就是由链接创建的。所以我们如何知道 `fun` 和 `fun-hard` 在事实上是同一个文件？`ls` 命令对此不是很有帮助，我们看到这两个文件具有相同的文件大小（第五个字段），单凭这一点，也还是不能确认的。要解决这个问题，我们不得不更深入探讨一下。
+
+当考虑硬链接时，把文件想象成两个组成部分，会很有帮助：
+
+1. 数据部分，包含文件内容。
+2. 名称部分，包含文件名称。
+
+当我们创建了硬链接，我们实际上创建了一个指向同一个数据部分的附加的名称部分。系统分配一个磁盘区块的串给一个<u>索引节点</u>（*inode*）,以关联名称部分。因此，每个硬链接指向一个包含特定文件内容的索引节点。
+
+`ls` 命令可以调用 `-i` 选项来揭示这个信息。
+
+```bash
+[me@linuxbox playground]$ ls -li
+total 16
+12353539 drwxrwxr-x 2 me me 4096 2018-01-14 16:17 dir1
+12353540 drwxrwxr-x 2 me me 4096 2018-01-14 16:17 dir2
+12353538 -rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun
+12353538 -rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun-hard
+```
+
+在这个版本的列表中，首字段是索引节点编号，我们能看到 `fun` 和 `fun-hard` 具有同一索引节点编号，即可确认两者为同一文件。
+
+### 创建符号链接
+
+为了克服硬链接的以下两个短处，我们创建了符号链接：
+
+1. 硬链接不能跨物理设备。
+2. 硬链接不能指向目录，仅能指向文件。
+
+符号链接是一种特殊的文件，包含指向目标文件或目录的文本指针。创建符号链接的方法类似于创建硬链接。
+
+```bash
+[me@linuxbox playground]$ ln -s fun fun-sym
+[me@linuxbox playground]$ ln -s ../fun dir1/fun-sym
+[me@linuxbox playground]$ ln -s ../fun dir2/fun-sym
+```
+
+第一个例子非常简单明了，我们加了一个 `-s` 选项来创建一个符号链接，而不是硬链接。但是下面两个是什么？记住，当我们创建了一个符号链接，我们创建了一个与目标文件关联的文本描述。如果用 `ls`，能更方便地看到：
+
+```bash
+[me@linuxbox playground]$ ls -l dir1
+total 4
+-rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun-hard
+lrwxrwxrwx 1 me me    6 2018-01-15 15:17 fun-sym -> ../fun
+```
+
+`dir1` 中的 `fun-sym` 的第一个字段中的 `l` 显示其为一个符号链接，指向 `../fun`，并且是正确的。相对于 `fun-sym`，`fun` 处在其上级目录中。同时注意到，符号链接文件的长度是 `6`，是 `../fun` 这串字符的长度，而非该符号链接所指向的文件的长度。
+
+在创建符号链接时，我们也可以使用绝对路径名，如下：
+
+```bash
+[me@linuxbox playground]$ ln -s /home/me/playground/fun dir1/fun-sym
+```
+
+或者如前例所示用相对路径名。大多数情况下，使用相对路径名更合适，因为这样就不会因为移动或重命名符号链接所在的目录和所指向的文件所在的目录，而导致链接失效。
+
+除了常规文件，符号链接还能指向目录。
+
+```bash
+[me@linuxbox playground]$ ln -s dir1 dir1-sym
+[me@linuxbox playground]$ ls -l
+total 16
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir1
+lrwxrwxrwx 1 me me    4 2018-01-16 14:45 dir1-sym -> dir1
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir2
+-rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun
+-rw-r--r-- 4 me me 1650 2018-01-10 16:33 fun-hard
+lrwxrwxrwx 1 me me    3 2018-01-15 15:15 fun-sym -> fun
+```
+
+### 移除文件和目录
+
+如前所述，`rm` 命令用来删除文件和目录。我们准备用它来清理一下游乐场。首先删掉一个硬链接。
+
+```bash
+[me@linuxbox playground]$ rm fun-hard
+[me@linuxbox playground]$ ls -l
+total 12
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir1
+lrwxrwxrwx 1 me me    4 2018-01-16 14:45 dir1-sym -> dir1
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir2
+-rw-r--r-- 3 me me 1650 2018-01-10 16:33 fun
+lrwxrwxrwx 1 me me    3 2018-01-15 15:15 fun-sym -> fun
+```
+
+工作得一如预期。`fun-hard` 文件消失了，如第二个字段所示，`fun` 文件的链接计数从 4 减少到了 3。接下来我们删除文件 `fun`，为了有趣点，我们加了个 `-i` 的选项来显示它如何工作的。
+
+```bash
+[me@linuxbox playground]$ rm -i fun
+rm: remove regular file `fun'?
+```
+
+键入 `y` 以删除文件。现在来看一下 `ls` 的输出，注意到 `fun-sym` 发生了什么了？一旦符号链接指向一个现时不存在的文件，链接就破损了。
+
+```bash
+[me@linuxbox playground]$ ls -l
+total 8
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir1
+lrwxrwxrwx 1 me me    4 2018-01-16 14:45 dir1-sym -> dir1
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir2
+lrwxrwxrwx 1 me me    3 2018-01-15 15:15 fun-sym -> fun
+```
+
+大多数 Linux 发行版会配置 `ls` 显示破损的链接。破损链接的存在对其自身而言不存在危险，但会显得相当混乱。如果我们尝试使用一个破损的链接：
+
+```bash
+[me@linuxbox playground]$ less fun-sym
+fun-sym: No such file or directory
+```
+
+让我们清理一下，删除符号链接：
+
+```bash
+[me@linuxbox playground]$ rm fun-sym dir1-sym
+[me@linuxbox playground]$ ls -l
+total 8
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir1
+drwxrwxr-x 2 me me 4096 2018-01-15 15:17 dir2
+```
+
+关于符号链接要记住的一件事，大多数文件操作都是在链接的目标上执行的，而不是链接本身。`rm` 命令是个例外当我们删除一个链接，就是删掉链接本身，而非链接的目标。
+
+最后，我们删掉我们的游乐场。我们要回到家目录，用 `rm` 加递归选项 `-r` 删掉 `playground` 及其所包含的全部文件和子目录。
+
+```bash
+[me@linuxbox playground]$ cd
+[me@linuxbox ~]$ rm -r playground
+```
+
+> **在图形界面创建符号链接**
+>
+> GNOME 和 KDE 所提供的文件管理器，提供了一个简单且自动的方法来创建符号链接。在 GNOME，按住 Ctrl+Shift，然后拖动一个文件，就创建了一个链接，而非复制（或移动）该文件。在 KDE，当一个文件被拖动时，会显示一个小菜单以供选择是复制还是移动，或是创建一个链接。
+
+## 总结
+
+本章我们学习了不少内容，需要一段时间来消化。要一遍遍做游乐场练习来熟悉。对基本文件操作命令及通配符有个好的理解，是很重要的。在练习时，可以自由发挥，多加入一些文件和目录，使用通配符来指定多个文件，以便执行各种操作。刚开始，链接的概念会令人困扰，花些时间来学习它们是如何工作的。它们会成为真正的救生员。
+
+## 扩展阅读
+
+- 关于符号链接的讨论 http://en.wikipedia.org/wiki/Symbolic_link
+
