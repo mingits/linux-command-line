@@ -5,6 +5,7 @@
   - [第4章：操作文件和目录](part-1-learning-the-shell/04-manipulating-files-and-directories)
   - [第5章：用命令工作](part-1-learning-the-shell/05-working-with-commands)
   - [第6章：重定向](part-1-learning-the-shell/06-redirection)
+  - [第7章：如 Shell 般看世界](part-1-learning-the-shell/07-seeing-the-world-as-the-shell-sees-it)
 - 第二部分：配置和环境
 - 第三部分：普通任务和基本工具
 - 第四部分：编写 Shell 脚本
