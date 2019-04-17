@@ -1,6 +1,6 @@
 # 1. 什么是 Shell
 
-当我们说起「命令行」时，我们实际上是指称 *shell* （此单词不翻译）。Shell 是一个程序，负责将通过键盘输入的命令带入操作系统并执行命令。几乎所有 Linux 发行版都会提供一个名叫 *bash* 的 GNU 项目。*bash*是「**B**ourne **A**gain **SH**ell」的缩略语，是原生 Unix shell 程序 *sh* （由 Steve Bourne 所写）的增强替代品。
+当我们说起「命令行」时，我们实际上是指称 *shell* （此单词不翻译）。Shell 是一个程序，负责将通过键盘输入的命令带入操作系统并执行命令。几乎所有 Linux 发行版都会提供一个名叫 *bash* 的 GNU 项目。*bash* 是「**B**ourne **A**gain **SH**ell」的缩略语，是原生 Unix shell 程序 *sh* （由 Steve Bourne 所写）的增强替代品。
 
 ## 终端模拟器
 

@@ -7,6 +7,7 @@
   - [第06章：重定向](part-1-learning-the-shell/06-redirection)
   - [第07章：如 Shell 般看世界](part-1-learning-the-shell/07-seeing-the-world-as-the-shell-sees-it)
   - [第08章：高级键盘技巧](part-1-learning-the-shell/08-advanced-keyboard-tricks)
+  - [第09章：许可](part-1-learning-the-shell/09-permissions)
 - 第二部分：配置和环境
 - 第三部分：普通任务和基本工具
 - 第四部分：编写 Shell 脚本
