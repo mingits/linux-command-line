@@ -371,15 +371,48 @@ User me may run the following commands on this host:
 >
 > 在 Unix 世界，普通用户和管理员之间一直有更大的区别，这归因于 Unix 的多用户传统。Unix 中采用的方法是仅在需要时授予超级用户权限。通常用 `su` 和 `sudo` 来做到这一点。
 >
-> 早些年之前，大多数 Linux 发行版依赖于 `su` 来实现这功能。`su` 不需要 `sudo` 所需的配置，Unix 传统中就有个 root 帐户。这引入了一个问题。用户在不必要的情况下，也会尝试用 root 身份操作。事实上，
+> 早些年之前，大多数 Linux 发行版依赖于 `su` 来实现这功能。`su` 不需要 `sudo` 所需的配置，Unix 传统中就有个 root 帐户。这引入了一个问题。用户在不必要的情况下，也会尝试用 root 身份操作。事实上，有些用户仅使用 root 用户来操作系统，因为这样真的就可以远离恼人的「许可受阻」的消息了。这是一个将 Linux 系统的安全性降低成 Windows 系统的做法。不是一个好主意。
+>
+> 当 Ubuntu 被推出时，其创建者采取了不同的策略。默认情况下，Ubuntu 禁用了 root 账户（用不能为账户设置密码的方法），取而代之的是使用 `sudo` 授予超级用户权限。第一个用户通过 `sudo`  被授予了超级用户的完全访问权限，也允许授予后续用户账户类似的能力。
 
 ### chown - 变更文件的属主和组
 
+`chown` 命令用来改变文件或目录的属主和属组。使用这个命令需要超级用户权限。`chown` 命令的句法如下：
 
+```bash
+chown [owner][:[group]] file...
+```
+
+`chown` 可以改变文件属主和/或文件属组，依赖于命令的第一个参数。表 9-7 提供了一些示例：
+
+表 9-7 `chown` 参数示例
+
+| 参数        | 结果                                                         |
+| ----------- | ------------------------------------------------------------ |
+| `bob`       | 将文件所有者从当前属主变更为用户 `bob`。                     |
+| `bob:users` | 将文件所有者从当前属主变更为用户 `bob`，并将属组变更为 `users`。 |
+| `:admins`   | 将文件属组变更为 `admins`，文件属主不变。                    |
+| `bob:`      | 将文件所有者从当前属主变更为用户 `bob`，将文件属组变更为用户 `bob` 的所在组。 |
+
+假设我们有两个用户，`janet` 拥有超级用户的访问权限，`tony` 没有该权限。用户 `janet` 想从自己的家目录复制一份文件到 `tony` 的家目录中。因为 `janet` 希望 `tony` 可以编辑文件，所以 `janet` 将拷贝件的所有者从 `janet` 更改为 `tony`。
+
+```bash
+[janet@linuxbox ~]$ sudo cp myfile.txt ~tony
+Password:
+[janet@linuxbox ~]$ sudo ls -l ~tony/myfile.txt
+ -rw-r--r-- 1 root  root  2018-03-20 14:30 /home/tony/myfile.txt
+ [janet@linuxbox ~]$ sudo chown tony: ~tony/myfile.txt
+ [janet@linuxbox ~]$ sudo ls -l ~tony/myfile.txt
+  -rw-r--r-- 1 tony  tony  2018-03-20 14:30 /home/tony/myfile.txt
+```
+
+我们看到用户 `janet` 将文件从自己的目录中复制到用户 `tony` 的家目录中。然后，`janet` 将文件的所有者从 `root`（使用 `sudo` 的结果）变更为 `tony`。通过使用尾随于第一个参数的冒号，同时变更了文件属组为用户 `tony` 登录时的用户组，也就是上面看到的 `tony`。
+
+注意，在第一次使用 `sudo` 之后，`janet` 就没有被提示要求输入密码了。这是因为 `sudo` 命令在大多数的配置中，会「信任」我们几分钟，直至计时器过期。
 
 ### chgrp - 变更组的属主
 
-
+在老版本的 Unix 中，`chown` 命令仅能变更文件属主，不能变更组别。一个独立的 `chgrp` 命令则用来实现变更组别的功能。除了有更多的限制之外，用法和 `chown` 一样。
 
 ## 优先权练习
 
