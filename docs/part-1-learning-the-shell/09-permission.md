@@ -416,15 +416,113 @@ Password:
 
 ## 优先权练习
 
+既然我们学习了如何设置权限，来炫耀一下吧。我们将演示一个常见问题的解决方案——设置一个共享目录。假定我们有两个用户，分别是「bill」和「karen」，各自有一份音乐收藏集，想要建立一个共享目录，分别存放如 ogg 或 mp3 之类的音乐文件。`bill` 用户通过 `sudo` 可以取得超级用户权限。
 
+首先要做的事，就是要创建一个包含 `bill` 和 `karen` 两个用户的用户组。使用图形用户管理工具，`bill` 建立了一个名叫 `music` 的用户组，将 `bill` 和 `karen` 加入到这个组中。
+
+![](../images/creating-a-new-group-with-gnome.jpg)
+
+随后 `bill` 为音乐文件创建了目录。
+
+```bash
+[bill@linuxbox ~]$ sudo mkdir /usr/local/share/Music
+Password:
+```
+
+由于 `bill` 在自己的家目录之外操作文件，所以需要超级用户权限。当目录得以创建之后，看一下所有者和权限：
+
+```bash
+[bill@linuxbox ~]$ ls -ld /usr/local/share/Music
+drwxr-xr-x 2 root root 4096 2018-03-21 18:05 /usr/local/share/Music
+```
+
+我们看到，目录属于 `root`，其权限为 `755`。要使其可共享，`bill` 需要变更属组和组的权限为可写。
+
+```bash
+[bill@linuxbox ~]$ sudo chown :music /usr/local/share/Music
+[bill@linuxbox ~]$ sudo chmod 775 /usr/local/share/Music
+[bill@linuxbox ~]$ ls -ld /usr/local/share/Music
+drwxrwxr-x 2 root music 4096 2018-03-21 18:05 /usr/local/share/Music
+```
+
+这都意味着什么呢？这意味着，我们现在有一个目录 `/usr/local/share/Music` 属于 `root` 用户，且允许 `music` 组用户读写。`music` 组有 `bill` 和 `karen` 两个成员，所以 `bill` 和 `karen` 可以在该目录中创建文件。其他用户能列出该目录中的内容，但无法在其中创建文件。
+
+但是我们还有一个问题。使用当前权限，在 `Music` 目录中创建的文件和目录将具有用户 `bill` 和 `karen` 的普通权限。
+
+```bash
+[bill@linuxbox ~]$ > /usr/local/share/Music/test_file
+[bill@linuxbox ~]$ ls -l /usr/local/share/Music
+-rw-r--r-- 1 bill bill 0 2018-03-24 20:03 test_file
+```
+
+实际上这里存在两个问题。第一个，该系统中默认的 `umask` 是 `0022`，预防组成员写入其他组成员的文件。如果共享目录中只有文件，这不会有问题，但是由于这个目录会存放音乐文件，音乐文件通常以音乐家、唱片集等阶层来组织，组成员需要能在其他用户创建的目录中创建文件和目录的能力。我们需要将 `bill` 和 `karen` 使用的 `umask` 更改为 `0002`。
+
+其次，每个成员创建的文件和目录，将被设置为用户初始的组，而非 `music` 组。这一点，可以通过设置目录的组 ID 位来修正。
+
+```bash
+[bill@linuxbox ~]$ sudo chmod g+s /usr/local/share/Music
+[bill@linuxbox ~]$ ls -ld /usr/local/share/Music
+drwxrwsr-x 2 root music 4096 2018-03-24 20:03 /usr/local/share/Music
+```
+
+现在来测试新的许可是否解决了问题。`bill` 设置了自己的 `umask` 为 `0002`，删除了先前的测试文件，创建了一个新的测试文件和目录：
+
+```bash
+[bill@linuxbox ~]$ umask 0002
+[bill@linuxbox ~]$ rm /usr/local/share/Music/test_file
+[bill@linuxbox ~]$ > /usr/local/share/Music/test_file
+[bill@linuxbox ~]$ mkdir /usr/local/share/Music/test_dir
+[bill@linuxbox ~]$ ls -l /usr/local/share/Music
+drwxrwsr-x 2 bill music 4096 2018-03-24 20:24 test_dir
+-rw-rw-r-- 1 bill music    0 2018-03-24 20:22 test_file
+[bill@linuxbox ~]$
+```
+
+文件和目录都创建好了，并设置了正确的许可以允许 `music` 组成员创建文件和目录。
+
+还剩下一个问题是 `umask`。必要的设置仅持续到会话终结，且会被重置。在第 11 章，我们会看到如何使 `umask` 设置永久变更。
 
 ## 变更密码
 
+本章最后一个话题，如何给自己设置密码（如果你有超级用户的权限，也可以给其他用户设置）。要设置或变更密码，需要用到 `passwd` 命令。该命令句法如下：
 
+```bash
+passwd [user]
+```
+
+要变更你的密码，仅徐键入 `passwd` 命令。会提示你输入旧密码和新密码。
+
+```bash
+[me@linuxbox ~]$ passwd
+(current) UNIX password:
+New UNIX password:
+```
+
+`passwd` 命令将强迫使用「强」密码。意味着它将拒绝过短的、太类似旧密码的、字典里的单词、和太容易被猜到的密码。
+
+```bash
+[me@linuxbox ~]$ passwd
+(current) UNIX password:
+New UNIX password:
+BAD PASSWORD: is too similar to the old one
+New UNIX password:
+BAD PASSWORD: it is WAY too short
+New UNIX password:
+BAD PASSWORD: it is based on a dictionary word
+```
+
+如果你有超级用户权限，你可以指定一个用户名作为 `passwd` 的参数来为该用户设置密码。超级用户还有其他可用的选项，允许锁定帐户、设置密码有效期等等。请参考 `passwd` 的手册页。
 
 ## 总结
 
-
+本章中我们看到了类 Unix 系统，如 Linux 如何管理用户对文件和目录的读写执行权限。这一许可系统的基本理念要回溯到 Unix 早期，而且已经得到时间的考验。但是类 Unix 系统的本地许可机制不如更现代的系统来得精细。
 
 ## 扩展阅读
 
+- 关于恶意软件，维基百科上有一篇好文章：http://en.wikipedia.org/wiki/Malware
+
+这里还有一些命令行程序用来创建和维护用户和组，可以查看下列命令的手册页获取更多信息：
+
+- `adduser`
+- `useradd`
+- `groupadd`
