@@ -207,7 +207,7 @@ ideo),46(plugdev),108(lpadmin),114(admin),1000(me)
 
 现在我们已经看到如何设置文件和目录的权限了，于是我们能更好的理解图形用户界面中的权限对话框。在 Files（GNOME）和 Dolphin（KDE）中，右键单击一个文件或目录，将展开一个属性对话框。例如在 GNOME 中：
 
-![GNOME 文件权限对话框](../images/TLCL-19.jpg)
+![GNOME 文件权限对话框](../images/gnome-file-permissions-dialog.jpg)
 
 这里能看到属主、属组、其他用户的设置。
 
