@@ -10,5 +10,6 @@
   - [第09章：许可](part-1-learning-the-shell/09-permissions)
   - [第10章：进程](part-1-learning-the-shell/10-processes)
 - 第二部分：配置和环境
+  - [第11章：环境](part-2-configuration-and-the-environment/11-the-environment)
 - 第三部分：普通任务和基本工具
 - 第四部分：编写 Shell 脚本
