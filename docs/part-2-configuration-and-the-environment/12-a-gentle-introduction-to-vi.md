@@ -458,27 +458,167 @@ Line 5
 
 当我们从一个文件切换到另一文件时，如果当前文件没有保存变更的话，`vi` 会有强制策略来阻止我们。要强制 `vi` 切换文件并放弃所作更改，需要在命令之后加一个感叹号（`!`）。
 
+在上述切换方法之外，`vim`（和某些版本的 `vi`）提供了一些 ex 命令，使管理多个文件的时候更方便。我们可以用 `:buffers` 命令查看正在编辑的文件清单。这样做会在命令下端显示文件清单。
 
+```bash
+:buffers
+  1 %a "foo.txt"            line 1
+  2    "ls-output.txt"      line 0
+Press ENTER or type command to continue
+```
+
+要切换到另一个缓冲区（文件），键入 `:buffer` 和想要编辑的缓冲区编号。例如，从 `1` 号 `foo.txt` 切换到 `2` 号 `ls-output.txt`，需要键入：
+
+```bash
+:buffer 2
+```
+
+现在，屏幕上显示第二个文件了。另一个切换文件的办法，就是之前介绍过的 `:bn`（buffer next）和 `:bp`（buffer previous）。
 
 ### 打开附加文件以编辑
 
+还可以将文件加入到正在编辑的会话中。ex 命令 `:e`（edit）后接文件名，将打开另一个文件。让我们结束当前编辑会话，回到命令行。
 
+再次开启 `vi`，这次只是打开一个文件。
+
+```bash
+[me@linuxbox ~]$ vi foo.txt
+```
+
+要加入第二个文件，键入：
+
+```bash
+:e ls-output.txt
+```
+
+它将显示在屏幕上。而第一个文件现在还存在着，可以验证一下。
+
+```bash
+:buffers
+  1    "foo.txt"            line 1
+  2 %a "ls-output.txt"      line 0
+Press ENTER or type command to continue
+```
 
 ### 从一个文件中复制内容到另一文件
 
+在编辑多个文件时，我们经常要将一个文件的部分复制到另一个正在编辑的文件中。使用通常的复制粘贴命令，很容易做到。我们可以演示如下。首先用我们的两个文件，切换到缓冲区 `1`（`foo.txt`）：
 
+```bash
+:buffer 1
+```
+
+会得到：
+
+```bash
+The quick brown fox jumped over the lazy dog. It was cool.
+Line 2
+Line 3
+Line 4
+Line 5
+```
+
+接下来，移动光标到第一行，键入 `yy` 复制该行。
+
+切换到第二个缓冲区：
+
+```bash
+:buffer 2
+```
+
+屏幕将显示一些文件清单（这里仅显示部分）：
+
+```bash
+total 343700
+-rwxr-xr-x 1 root root  31316 2017-12-05 08:58 [
+-rwxr-xr-x 1 root root   8240 2017-12-09 13:39 411toppm
+-rwxr-xr-x 1 root root 111276 2018-01-31 13:36 a2p
+-rwxr-xr-x 1 root root  25368 2016-10-06 20:16 a52dec
+-rwxr-xr-x 1 root root  11532 2017-05-04 17:43 aafire
+-rwxr-xr-x 1 root root   7292 2017-05-04 17:43 aainfo
+```
+
+移动光标到第一行，并用 `p` 命令粘贴之前复制的那行文字。
+
+```bash
+total 343700
+The quick brown fox jumped over the lazy dog. It was cool.
+-rwxr-xr-x 1 root root  31316 2017-12-05 08:58 [
+-rwxr-xr-x 1 root root   8240 2017-12-09 13:39 411toppm
+-rwxr-xr-x 1 root root 111276 2018-01-31 13:36 a2p
+-rwxr-xr-x 1 root root  25368 2016-10-06 20:16 a52dec
+-rwxr-xr-x 1 root root  11532 2017-05-04 17:43 aafire
+-rwxr-xr-x 1 root root   7292 2017-05-04 17:43 aainfo
+```
 
 ### 将整个文件插入到另一文件
 
+还可以将整个文件插入到我们正在编辑的文件。要查看这个行为，先结束之前的 `vi` 会话，重新开启单个文件的会话。
 
+```bash
+[me@linuxbox ~]$ vi ls-output.txt
+```
+
+再次看到文件清单。
+
+```bash
+total 343700
+-rwxr-xr-x 1 root root  31316 2017-12-05 08:58 [
+-rwxr-xr-x 1 root root   8240 2017-12-09 13:39 411toppm
+-rwxr-xr-x 1 root root 111276 2018-01-31 13:36 a2p
+-rwxr-xr-x 1 root root  25368 2016-10-06 20:16 a52dec
+-rwxr-xr-x 1 root root  11532 2017-05-04 17:43 aafire
+-rwxr-xr-x 1 root root   7292 2017-05-04 17:43 aainfo
+```
+
+移动光标到第三行，键入下列 ex 命令：
+
+```bash
+:r foo.txt
+```
+
+`r` 命令（read）将指定文件插入到光标之下。屏幕将显示为：
+
+```bash
+total 343700
+-rwxr-xr-x 1 root root  31316 2017-12-05 08:58 [
+-rwxr-xr-x 1 root root   8240 2017-12-09 13:39 411toppm
+The quick brown fox jumped over the lazy dog. It was cool.
+Line 2
+Line 3
+Line 4
+Line 5
+-rwxr-xr-x 1 root root 111276 2018-01-31 13:36 a2p
+-rwxr-xr-x 1 root root  25368 2016-10-06 20:16 a52dec
+-rwxr-xr-x 1 root root  11532 2017-05-04 17:43 aafire
+-rwxr-xr-x 1 root root   7292 2017-05-04 17:43 aainfo
+```
 
 ## 保存工作
 
+和其它程序一样，`vi` 有好些方法保存我们编辑过的文件。我们已经学过 `:w` 命令，但其它命令或许会更有用。
 
+在命令模式中，按 `ZZ` 会保存当前文件并退出 `vi`。类似的 ex 命令是 `:wq`，将 `:w` 和 `:q` 合并到一个命令中，将保存文件并退出。
+
+`:w` 命令还能指定一个可选的文件名。该行为类似「另存为...」。如我们正在编辑 `foo.txt` 并想要保存一个替代版本 `foo1.txt`，可以键入如下命令：
+
+```bash
+:w foo1.txt
+```
+
+> 注意：当文件以另一个文件名保存时，正在编辑的文件本身并不会更改。当我们继续编辑时，依旧在编辑 `foo.txt` 而非 `foo1.txt`。
 
 ## 总结
 
-
+有了这些基本技能，我们就可以执行大多数的文本编辑以维护一个典型的 Linux 系统。从长远来看，学习定期使用 `vim` 会获得回报。因为 vi 风格的编辑器是如此深入的整合在 Unix 文化中，我们将会看到许多其它程序也受其风格影响。`less` 就是这种影响的好示例。
 
 ## 扩展阅读
+
+我们本章中所学的，仅仅触及 `vi` 和 `vim` 的表面。这里有一堆线上资源可以供你使用，继续你的 `vi` 征服之旅：
+
+- Vim, with Vigor——一个在 LinuxCommand.org 接续本章的教程，可以培养读者到中级技能。http://linuxcommand.org/lc3_adv_vimvigor.php
+- Learning The vi Editor——维基百科提供的百科图书，提供了 `vi` 简明教程。http://en.wikibooks.org/wiki/Vi
+- The Vim Book—— `vim` 项目的 570 页的书，覆盖了几乎所有的 `vim` 特性。ftp://ftp.vim.org/pub/vim/doc/book/vimbook-OPL.pdf
+- 一个关于 `vi` 作者 Bill Joy 的维基百科条目：http://en.wikipedia.org/wiki/Bill_Joy
+- 一个关于 `vim` 作者 Bram Moolenaar 的维基百科条目：http://en.wikipedia.org/wiki/Bram_Moolenaar
 
