@@ -182,15 +182,67 @@ umount: /mnt/cdrom: device is busy
 
 表 15-2：Linux 存储设备名称
 
-| 样式       | 设备                                  |
-| ---------- | ------------------------------------- |
-| `/dev/fd*` | 软盘驱动器。                          |
-| `/dev/hd*` | 老旧系统中的 IDE(PATA) 磁盘。         |
-| `/dev/lp*` | 打印机。                              |
-| `/dev/sd*` | SCSI 磁盘。                           |
-| `/dev/sr*` | 光学设备（CD/DVD 的读取和烧录设备）。 |
+| 样式       | 设备                                                         |
+| ---------- | ------------------------------------------------------------ |
+| `/dev/fd*` | 软盘驱动器。                                                 |
+| `/dev/hd*` | 老旧系统中的 IDE(PATA) 磁盘。典型的主板包含了两个 IDE 接口或<u>通道</u>（*channels*），每个都带有一个电缆，带有两个驱动器连接点。电缆上的第一个驱动叫<u>主</u>（*master*）设备，第二个叫<u>从</u>（*slave*）设备 。设备名按此排序，如 `/dev/hda` 指第一个通道的主设备，`/dev/hdb` 指第一个通道的从设备；`/dev/hdc` 指第二个通道的主设备，以此类推。尾随的数字是指设备上的分区编号。如 `/dev/hda1` 指系统上第一块硬盘上的第一个分区，而 `/dev/hda` 则指整个硬盘。 |
+| `/dev/lp*` | 打印机。                                                     |
+| `/dev/sd*` | SCSI 磁盘。在现代 Linux 系统上，内核将所有磁盘类的设备（包括 PATA/SATA 硬盘，闪存盘，如便携式音乐播放器和数字相机之类的大容量存储设备等）都当 SCSI 磁盘。其余的命名系统与老旧的 `/dev/hd*` 命名规则类似。 |
+| `/dev/sr*` | 光学设备（CD/DVD 的读取和烧录设备）。                        |
 
+另外，我们经常看到符号链接，如 `/dev/cdrom`、`/dev/dvd` 和 `/dev/floppy`，指向实际设备文件，以提供便利。
 
+如果你工作在一个没有自动加载可移动设备的系统上，你可以使用下列技术来确定加载后的可移动设备的名称。首先，开启一个对 `/var/log/messages` 或 `/var/log/syslog` 文件的实时查看（可能需要超级管理员权限）。
+
+```bash
+[me@linuxbox ~]$ sudo tail -f /var/log/messages
+```
+
+会显示文件的最后几行，然后会暂停。然后插入可移动设备，在本例中，我们将用一个 16MB 的闪存。几乎即时地，内核注意到了设备并检测到它。
+
+```bash
+Jul 23 10:07:53 linuxbox kernel: usb 3-2: new full speed USB device using uhci_hcd and address 2
+Jul 23 10:07:53 linuxbox kernel: usb 3-2: configuration #1 chosen from 1 choice
+Jul 23 10:07:53 linuxbox kernel: scsi3 : SCSI emulation for USB Mass Storage devices
+Jul 23 10:07:58 linuxbox kernel: scsi scan: INQUIRY result too short (5), using 36
+Jul 23 10:07:58 linuxbox kernel: scsi 3:0:0:0: Direct-Access Easy Disk 1.00 PQ: 0 ANSI: 2
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] 31263 512-byte hardware sectors (16 MB)
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] Write Protect is off
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] Assuming drive cache: write through
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] 31263 512-byte hardware sectors (16 MB)
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] Write Protect is off
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] Assuming drive cache: write through
+Jul 23 10:07:59 linuxbox kernel: sdb: sdb1
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] Attached SCSI removable disk
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: Attached scsi generic sg3 type 0
+```
+
+显示后再次暂停，按 `Ctrl-c` 返回提示符。有趣的是输出中重复指向 [sdb] 的部分，匹配我们所期待的 SCSI 磁盘设备名。了解到这一点，这两行变得特别有启发性：
+
+```bash
+Jul 23 10:07:59 linuxbox kernel: sdb: sdb1
+Jul 23 10:07:59 linuxbox kernel: sd 3:0:0:0: [sdb] Attached SCSI removable disk
+```
+
+这告诉我们整个设备的名称是 `/dev/sdb`，第一个分区是 `/dev/sdb1`。我们已经看到，用 Linux 工作充满了侦探工作的乐趣！
+
+> **提示：**使用 `tail -f /var/log/messages` 技术可以实时观察系统正在干嘛。
+
+有了设备名称，我们就可以加载这个闪存了。
+
+```bash
+[me@linuxbox ~]$ sudo mkdir /mnt/flash
+[me@linuxbox ~]$ sudo mount /dev/sdb1 /mnt/flash
+[me@linuxbox ~]$ df
+Filesystem  1K-blocks        Used   Available  Use%  Mounted on
+/dev/sda2    15115452     5186944     9775164   35%  /
+/dev/sda5    59631908    31777376    24776480   57%  /home
+/dev/sda1      147764       17277      122858   13%  /boot
+tmpfs          776808           0      776808    0%  /dev/shm
+/dev/sdb1       15560           0       15560    0%  /mnt/flash
+```
+
+如果设备一直保持物理连接且没有重启计算机，则该设备名将保持不变。
 
 ## 创建新的文件系统
 
