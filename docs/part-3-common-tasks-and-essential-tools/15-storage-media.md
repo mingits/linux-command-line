@@ -246,9 +246,87 @@ tmpfs          776808           0      776808    0%  /dev/shm
 
 ## 创建新的文件系统
 
+现在我们要对闪存盘用 Linux 原生系统重新格式化，不要用现在的 FAT32 系统了。这涉及到两个步骤。
 
+1. （可选的）创建一个新的分区布局，如果现存的布局不合适的话。
+2. 在磁盘上创建一个新的空白的文件系统。
+
+> **警告！**在下面的练习中，我们将格式化一个闪存盘。请用一个不含重要内容的盘，因为格式化将清除所有文件！还有，**确保你所指定的设备名在你的系统中是正确的，不一定和下面的文本中保持一致。忽略此警告将导致你格式化（擦除）错误的驱动器！**
 
 ### 用 fdisk 处理分区
+
+`fdisk` 是许多能让我们直接和磁盘类设备（如硬盘和闪存盘）在低级别进行交互的（命令行和图形界面的）程序之一。 我们可以通过这个工具在设备上编辑、删除和创建新分区。要在闪存盘上工作，首先要卸载它（如果必要的话），然后调用 `fdisk` 程序：
+
+```bash
+[me@linuxbox ~]$ sudo umount /dev/sdb1
+[me@linuxbox ~]$ sudo fdisk /dev/sdb
+```
+
+注意，我们所指定的必须是整个设备，而非某个分区。当程序启动后，会看到下列提示符：
+
+```bash
+Command (m for help):
+```
+
+键入 `m` 将显示程序菜单。
+
+```bash
+Command action
+  a    toggle a bootable flag
+  b    edit bsd disklabel
+  c    toggle the dos compatibility flag
+  d    delete a partition
+  l    list known partition types
+  m    print this menu
+  n    add a new partition
+  o    create a new empty DOS partition table
+  p    print the partition table
+  q    quit without saving changes
+  s    create a new empty Sun disklabel
+  t    change a partition's system id
+  u    change display/entry units
+  v    verify the partition table
+  w    write table to disk and exit
+  x    extra functionality (experts only)
+
+Command (m for help):
+```
+
+首先要做的是检查现存的分区布局，我们键入一个 `p` 来打印设备的分区表。
+
+```bash
+Command (m for help): p
+
+Disk /dev/sdb: 16 MB, 16006656 bytes
+1 heads, 31 sectors/track, 1008 cylinders
+Units = cylinders of 31 * 512 = 15872 bytes
+
+Device Boot    Start    End   Blocks    Id    System
+/dev/sdb1          2   1008   15608+     b    W95 FAT32
+```
+
+本例中，我们看到一个 16MB 的设备，仅有一个分区 (1)，使用了 1008 个磁盘柱面中的 1006 个，被识别为 Windows 95 的 FAT32 分区。有些程序会以这个识别来限制操作的种类，不过多数时候改变它并不重要。这次演示的重点，我们要将它改变为一个 Linux 分区。为此，必须首先找到 Linux 分区所用的标识符。在之前的列表中，我们看到 `ID b` 用来指定现有分区。要查看可用的分区类型列表，我们看一下程序菜单。可以看到下列选项：
+
+```bash
+l    list known partition types
+```
+
+若在提示符中键入 `l`，会显示很长的一个列表。其中，我们看到 `b` 是现有分区类型，而 `83` 是 Linux 分区类型。
+
+回到菜单，我们看到该选项用来改变分区的 ID：
+
+```bash
+t    change a partition's system id
+```
+
+我们键入 `t` 并输入新的 ID：
+
+```bash
+Command (m for help): t
+Selected partition 1
+Hex code (type L to list codes): 83
+Changed system type of partition 1 to 83 (Linux)
+```
 
 
 
