@@ -328,7 +328,18 @@ Hex code (type L to list codes): 83
 Changed system type of partition 1 to 83 (Linux)
 ```
 
+这样，我们所要的变更都已经完成了。目前为止，设备还不受影响（所有的变更都存储在内存中，而非在物理设备上），所以我们要将变更的分区表写入设备，然后退出。我们在提示符处输入 `w`。
 
+```bash
+Command (m for help): w
+The partition table has been altered!
+Calling ioctl() to re-read partition table.
+WARNING: If you have created or modified any DOS 6.x partitions, please see the fdisk manual page for additional information.
+Syncing disks.
+[me@linuxbox ~]$
+```
+
+如果我们想不对设备做变更而退出，可以在提示符中输入 `q`，以便不写入变更而退出。可以直接忽略那些听起来很可怕的警告信息。
 
 ### 用 mkfs 创建新文件系统
 
