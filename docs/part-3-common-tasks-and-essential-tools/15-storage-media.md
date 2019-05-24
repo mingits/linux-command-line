@@ -343,6 +343,33 @@ Syncing disks.
 
 ### 用 mkfs 创建新文件系统
 
+我们已经编辑了分区表（虽然它可能是轻量级的），是时候在闪存盘上创建新的文件系统了。我们用 `mkfs`（即 **m**a**k**e **f**ile **s**ystem 的缩写）命令，可以用多种格式创建文件系统。要创建一个 ext4 文件系统，我们用 `-t` 选项来指定 ext4 系统类型，后面跟着要创建该格式分区的设备名。
+
+```bash
+[me@linuxbox ~]$ sudo mkfs -t ext4 /dev/sdb1
+mke2fs 2.23.2 (12-Jul-2011)
+Filesystem label=
+OS type: Linux
+Block size=1024 (log=0)
+Fragment size=1024 (log=0)
+3904 inodes, 15608 blocks
+780 blocks (5.00%) reserved for the super user
+First data block=1
+Maximum filesystem blocks=15990784
+2 block groups
+8192 blocks per group, 8192 fragments per group
+1952 inodes per group
+Superblock backups stored on blocks:
+    8193
+
+Writing inode tables: done
+Creating journal (1024 blocks): done
+Writing superblocks and filesystem accounting information: done
+This filesystem will be automatically checked every 34 mounts or
+180 days, whichever comes first. Use tune2fs -c or -i to override.
+[me@linuxbox ~]$
+```
+
 
 
 ## 测试并修复文件系统
