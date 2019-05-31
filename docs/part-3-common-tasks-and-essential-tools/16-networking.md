@@ -87,35 +87,159 @@ cr2-pos-0-0-3-1.newyork.savvis.net (204.70.204.238) 19.556 ms cr1-pos-0-7-3-1.ne
 16 slashdot.org (216.34.181.45) 42.727 ms 42.016 ms 41.437 ms
 ```
 
-在输出的信息中，我们可以看到从我们的测试系统到 `slashdot.org` 需要穿越 16 个路由。路由器提供身份信息，我们可以看到主机名，IP 地址和性能数据
+在输出的信息中，我们可以看到从我们的测试系统到 `slashdot.org` 需要穿越 16 个路由。路由器提供身份信息，我们可以看到主机名，IP 地址和包含在三个从本地系统到路由器的往返时间的性能数据。由于路由器不会提供身份信息（因为路由配置、网络拥堵、防火墙等等原因），我们在第二跳上看到的是星号。为了防止路由信息被阻挡，有时候可以加 `-T` 或 `-I` 选项来克服这一点。
 
 ### ip
 
+`ip` 程序是一个多功能的网络配置工具，它利用现代 Linux 内核中可用功能的全系列网络。它取代了早期而现在已经弃用了的 `ifconfig` 程序。用 `ip`，我们可以检查系统的网络接口和路由表。
 
+```bash
+[me@linuxbox ~]$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+        valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+        valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether ac:22:0b:52:cf:84 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.1.14/24 brd 192.168.1.255 scope global eth0
+        valid_lft forever preferred_lft forever
+    inet6 fe80::ae22:bff:fe52:cf84/64 scope link
+        valid_lft forever preferred_lft forever
+```
+
+上面的例子中，我们看到测试系统上有两个网络接口。第一个叫 `lo`，是<u>回环接口</u>（*loopback interface*），一个虚拟接口，系统用来「对自己说话」。第二个叫 `eth0`，是以太网接口。
+
+在执行临时网络诊断时，重要的是要在每个接口的第一行中寻找 `UP` 这个单词的存在，它指示了该网络接口是活跃的；还有第三行中 `inet` 域中有效的 IP 地址的存在。由于系统使用<u>动态主机配置协议</u>（*Dynamic Host Configuration Protocol* DHCP）
 
 ### netstat
 
+`netstat` 程序用来检查各种网络设置和统计数据。通过使用其众多的选项，我们可以看到网络设置中的大量特性。使用 `-ie` 选项，我们能检查系统中的网络接口。
 
+```bash
+[me@linuxbox ~]$ netstat -ie
+eth0    Link encap:Ethernet HWaddr 00:1d:09:9b:99:67
+        inet addr:192.168.1.2 Bcast:192.168.1.255 Mask:255.255.255.0
+        inet6 addr: fe80::21d:9ff:fe9b:9967/64 Scope:Link
+        UP BROADCAST RUNNING MULTICAST MTU:1500 Metric:1
+        RX packets:238488 errors:0 dropped:0 overruns:0 frame:0
+        TX packets:403217 errors:0 dropped:0 overruns:0 carrier:0
+        collisions:0 txqueuelen:100
+        RX bytes:153098921 (146.0 MB) TX bytes:261035246 (248.9 MB)
+        Memory:fdfc0000-fdfe0000
+lo      Link encap:Local Loopback
+        inet addr:127.0.0.1 Mask:255.0.0.0
+        inet6 addr: ::1/128 Scope:Host
+        UP LOOPBACK RUNNING MTU:16436 Metric:1
+        RX packets:2208 errors:0 dropped:0 overruns:0 frame:0
+        TX packets:2208 errors:0 dropped:0 overruns:0 carrier:0
+        collisions:0 txqueuelen:0
+        RX bytes:111490 (108.8 KB) TX bytes:111490 (108.8 KB)
+```
+
+使用 `-r` 选项将显示内核的网络路由表。显示网络是如何被配置为从一个网络发送数据包到另一个网络。
+
+```bash
+[me@linuxbox ~]$ netstat -r
+Kernel IP routing table
+Destination  Gateway      Genmask        Flags  MSS  Window  irtt  Iface
+
+192.168.1.0  *            255.255.255.0  U        0  0       0     eth0
+default      192.168.1.1  0.0.0.0        UG       0  0       0     eth0
+```
+
+本例中，我们看到一个典型的在防火墙/路由器之后的局域网（*local area network* LAN）中的一台客户机上的路由表。列表第一行，显示目标 `192.168.1.0`。以零结尾的 IP 地址指的是整个网络，而非单独的主机，所以该目标意为在局域网中的任意主机。第二个字段，网关（Gateway），是用于从当前主机到目标网络的网关（路由器）的名称或 IP 地址。字段中的星号表示不需要网关。
+
+最后一行包含了目标 `default`。这意味着发往网络的任何流量都未在表中列出。在我们的例子中，可以看到网关被定义为一个路由器，地址是 `192.168.1.1`，假定其知晓如何处理目标流量。
+
+和 `ip` 程序一样，`netstat` 有众多的选项，而我们仅仅学了两个。请查看 `ip` 和 `netstat` 的手册页以获取完整的选项列表。
 
 ## 通过网络传输文件
 
-
+网络有什么好呢？除非我们能在网上移动文件。有许多程序可以在网络上移动数据。我们将学习其中的两个，更多的将放在后续章节中。
 
 ### ftp
 
+作为一个「经典」的程序，`ftp` 得名于其所用的协议，<u>文件传输协议</u>（*File Transfer Protocol*）。FTP 曾是通过互联网下载文件应用最广的方法。大多数，如果不是全部，浏览器支持 FTP，你也会经常看到以 `ftp://` 开头的 URI。
 
+在浏览器之前，是 `ftp` 程序。`ftp` 程序用来和 FTP 服务器通信，FTP 服务器包含可通过网络上传或下载的文件。
+
+FTP （在其原始状态）是不安全的，因为它以<u>明文</u>（*cleartext*）发送用户名和密码。这意味着它们未曾加密，任何嗅探网络的人都能看到。由于此，几乎所有 FTP 能在互联网上做的，都由<u>匿名 FTP 服务器</u>（*anonymous FTP servers*）完成了。匿名 FTP 服务器允许任何人以「anonymous」作为用户名和一个无意义的密码登录。
+
+在下面的例子中，我们会展示一个用 `ftp` 程序下载位于名为 `fileserver`  的匿名 FTP 服务器中的 `/pub/cd_images/Ubuntu-18.04` 目录中 Ubuntu ISO 映像文件的典型会话：
+
+```bash
+[me@linuxbox ~]$ ftp fileserver
+Connected to fileserver.localdomain.
+220 (vsFTPd 2.0.1)
+Name (fileserver:me): anonymous
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> cd pub/cd_images/Ubuntu-18.04
+250 Directory successfully changed.
+ftp> ls
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+-rw-rw-r--    1    500    500    733079552    Apr 25 03:53 ubuntu-18.04-desktop-amd64.iso
+226 Directory send OK.
+ftp> lcd Desktop
+Local directory now /home/me/Desktop
+ftp> get ubuntu-18.04-desktop-amd64.iso
+local: ubuntu-18.04-desktop-amd64.iso remote: ubuntu-18.04-desktopamd64.iso
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for ubuntu-18.04-desktopamd64.iso (733079552 bytes).
+226 File send OK.
+733079552 bytes received in 68.56 secs (10441.5 kB/s)
+ftp> bye
+```
+
+表 16-1 提供了对这个会话中的所键入的命令的解释。
+
+表 16-1：`ftp` 命令交互示例
+
+| 命令                                 | 意义                                                         |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `ftp fileserver`                     | 调用 `ftp`  程序并使其连接到 FTP 服务器 `fileserver`。       |
+| `anonymous`                          | 登录名。在登录提示符之后，会出现一个密码提示符。有些服务器会接受一个空密码，有些则需要如电子邮件地址格式一样的密码，若如此，请尝试如 `user@example.com` 形式的密码。 |
+| `cd pub/cd_images/Ubuntu-18.04`      | 在远程系统中切换目录到包含想要的文件所在的目录。注意，在大多数匿名 FTP 服务器上，供公开下载的文件的可以在 `pub`  下找到。 |
+| `ls`                                 | 列出远程系统的目录内容。                                     |
+| `lcd Desktop`                        | 切换本地系统的目录到 `~/Desktop`。在例子中，调用 `ftp` 时的工作目录是 `~`。该命令将工作目录切换到 `~/Desktop`。 |
+| `get ubuntu-18.04-desktop-amd64.iso` | 告知远程系统传输 `ubuntu-18.04-desktop-amd64.iso` 文件到本地系统。由于本地系统的工作目录已经切换到 `~/Desktop`，文件也将被下载到该目录中。 |
+| `bye`                                | 登出远程系统并终结 `ftp` 程序会话。也常用 `quit` 和 `exit` 命令。 |
+
+在 `ftp>` 提示符下输入 `help` 会显示受支持的命令列表。在已授予足够权限的服务器上使用 `ftp`，可以通过网络执行许多普通文件管理任务的传输文件。 这很笨拙，但确实有效。
 
 ### lftp - 一个更好的 ftp
 
-
+`ftp` 不是仅有的命令行 FTP 客户端。事实上有很多这样的程序。其中，一个更好（也更受欢迎）的程序，是由 Alexander Lukyanov 写的 `lftp`。它的用法很像传统的 `ftp` 程序，不过有许多额外的便利特性，包括支持多协议（包括 HTTP）、下载失败后的自动重试、后台进程、Tab 键补全路径名，等等等等。
 
 ### wget
 
+另一个流行的用于文件下载的命令行程序是 `wget`。对于下载网络和 FTP 站点的内容来说，它很有用。它可以下载单个文件、多个文件、甚至整个站点。要下载 `linuxcommand.org` 的第一个页面，我们可以这么做：
 
+```bash
+[me@linuxbox ~]$ wget http://linuxcommand.org/index.php
+--11:02:51-- http://linuxcommand.org/index.php
+           => `index.php'
+Resolving linuxcommand.org... 66.35.250.210
+Connecting to linuxcommand.org|66.35.250.210|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+
+    [ <=>                      ] 3,120               --.--K/s
+
+11:02:51 (161.75 MB/s) - `index.php' saved [3120]
+```
+
+程序的许多选项，允许 `wget` 递归式下载、在后台下载（允许你登出但继续下载）、完成一个已下载了部分的文件。这些特性在其优于平均水平的手册页中有很好的记述。
 
 ## 与远程主机安全通信
 
-
+很多年来，类 Unix 操作系统
 
 ### ssh
 
