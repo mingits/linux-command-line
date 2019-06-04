@@ -235,13 +235,48 @@ Length: unspecified [text/html]
 11:02:51 (161.75 MB/s) - `index.php' saved [3120]
 ```
 
-程序的许多选项，允许 `wget` 递归式下载、在后台下载（允许你登出但继续下载）、完成一个已下载了部分的文件。这些特性在其优于平均水平的手册页中有很好的记述。
+程序的许多选项，允许 `wget` 递归式下载、在后台下载（允许你登出但继续下载）、完成一个已下载了部分的文件。这些特性在其优异的手册页中有很好的记述。
 
 ## 与远程主机安全通信
 
-很多年来，类 Unix 操作系统
+很多年来，人们都可以通过网络管理类 Unix 操作系统。在早年，在普遍采用互联网之前，有一对流行的程序用来登录远程主机。它们是 `rlogin` 和 `telnet`。然而，这两个程序有着和 `ftp` 一样的致命缺陷，那就是用明文传输所有的通信（包含登录名和密码）。这使得它们在互联网时代显得非常不妥。
 
 ### ssh
+
+为了解决这个问题，发展出了一个名为安全壳的协议（SSH Secure Shell）。SSH 解决了在与远程主机安全通信的两个基本问题：
+
+1. 验证了远程主机所说的它是谁（防止了中间人攻击）。
+2. 加密了本地与远程主机之间的所有通信。
+
+SSH 由两部分组成。一个  SSH 服务端运行在远程主机，监听进入的连接，默认端口号是 22，SSH 客户端运行在本地系统中，以与远程服务器通信。
+
+大多数 Linux 发行版都发布了一个从 OpenBSD 项目中来的名为 OpenSSH 的 SSH 实现。一些发行版（如 Red Hat）默认包含了服务端和客户端的包，有些（如 Ubuntu）则仅包含了客户端。要使系统能接收远程连接，就必须安装有 `OpenSSH-server` 包，且已正确配置并运行，并且（如果系统是在防火墙之后的）要允许 TCP 22 端口进入的网络连接。
+
+> **技巧：**如果你没有可以连接的远程系统，但是又想尝试这些示例，请确保 `OpenSSH-server` 在你的系统中已经安装好了，并使用 `localhost` 作为远程主机名。这样，你的机器就可以自己搭建一个网络连接了。
+
+SSH 客户端程序用来连接远程 SSH 服务器，程序名称也足够适当，就是 `ssh`。要连接名为 `remote-sys` 的远程主机，可以使用如下命令：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys
+The authenticity of host 'remote-sys (192.168.1.4)' can't be established.
+RSA key fingerprint is
+41:ed:7a:df:23:19:bf:3c:a5:17:bc:61:b3:7f:d9:bb.
+Are you sure you want to continue connecting (yes/no)?
+```
+
+首次尝试连接，会显示一条信息，指示不能建立对远程主机的信任。因为此前客户端从未见过该主机。要接受对远程主机的信任，在提示符处键入「yes」。一旦建立连接，就会提示用户输入密码：
+
+```bash
+Warning: Permanently added 'remote-sys,192.168.1.4' (RSA) to the list of known hosts.
+me@remote-sys's password:
+```
+
+正确地输入密码之后，我们会接收到远程系统的 shell 提示符。
+
+```bash
+Last login: Sat Aug 30 13:00:48 2016
+[me@remote-sys ~]$
+```
 
 
 
