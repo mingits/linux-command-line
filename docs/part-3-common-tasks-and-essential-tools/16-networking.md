@@ -278,7 +278,77 @@ Last login: Sat Aug 30 13:00:48 2016
 [me@remote-sys ~]$
 ```
 
+远程 shell 会话会持续工作，直至用户在远程 shell 提示符处输入 `exit` 关闭远程连接为止。同时恢复本地 shell 会话，本地 shell 提示符重新出现。
 
+在连接到远程系统时，也可以使用不同的用户名。例如，若本地用户 `me` 在远程系统中有一个名为 `bob` 的帐户，则用户 `me` 可以用 `bob` 帐户登录到远程系统：
+
+```bash
+[me@linuxbox ~]$ ssh bob@remote-sys
+bob@remote-sys's password:
+Last login: Sat Aug 30 13:03:21 2016
+[bob@remote-sys ~]$
+```
+
+与之前的状态一样，ssh 会验证远程主机的真实性。如果远程主机没有成功验证，会出现下列信息：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+It is also possible that the RSA host key has just been changed.
+The fingerprint for the RSA key sent by the remote host is
+41:ed:7a:df:23:19:bf:3c:a5:17:bc:61:b3:7f:d9:bb.
+Please contact your system administrator.
+Add correct host key in /home/me/.ssh/known_hosts to get rid of this message.
+Offending key in /home/me/.ssh/known_hosts:1
+RSA host key for remote-sys has changed and you have requested strict
+checking.
+Host key verification failed.
+```
+
+出现这类信息，有两种可能。第一种可能是有人尝试中间人攻击。这种情况很罕见，因为大家都知道 ssh 会这样警告用户。最可能的罪魁祸首，是远程系统已经做了某种变动，例如其操作系统或者 SSH 服务端被重新安装过了。为了安全和保障起见，第一种可能不应该被忽视。当这类信息出现时，总是要与远程系统的管理员检查一下。
+
+在确定此类信息的出现不是恶意的之后，即可以安全地改正来自客户端的问题。即，使用文本编辑器（可以是 `vim`）来移除 `~/.ssh/known_hosts` 文件中废弃的键。在上例中，我们看到这个：
+
+```bash
+Offending key in /home/me/.ssh/known_hosts:1
+```
+
+这意味着在 `known_hosts` 文件中的第一行，包含着一个违规键。删除该行，然后 `ssh` 程序就能从远程系统接收新的身份验证凭据了。
+
+除了能打开一个远程系统的 shell 会话，`ssh` 还允许我们在远程系统上执行单个命令。如，要在名为 `remote-sys` 的远程主机上执行 `free` 命令，并将结果显示在本地系统中，需要这么操作：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys free
+me@twin4's password:
+             total     used     free     shared    buffers     cached
+
+Mem:        775536   507184   268352          0     110068     154596
+-/+ buffers/cache:   242520   533016
+Swap:      1572856        0  1572856
+[me@linuxbox ~]$
+```
+
+可以有更多有趣的方法来使用该技术，如下例中我们在远程系统中执行 `ls` 命令并重定向输出到本地系统中的一个文件：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys 'ls *' > dirlist.txt
+me@twin4's password:
+[me@linuxbox ~]$
+```
+
+注意上面的命令中使用了单引号。这样做是因为我们不想把路径名扩展到本地机器上，而是希望其在远程系统中执行。同样的，如果我们想将输出重定向到远程机器的上的一个文件时，可以将重定向操作符和文件名放在单引号中。
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys 'ls * > dirlist.txt'
+```
+
+> **使用 SSH 进行隧道连接**
+>
+> 
 
 ### scp 和 sftp
 
