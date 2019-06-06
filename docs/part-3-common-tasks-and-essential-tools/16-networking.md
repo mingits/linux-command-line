@@ -348,15 +348,68 @@ me@twin4's password:
 
 > **使用 SSH 进行隧道连接**
 >
-> 
+> 当通过 SSH 连接远程主机时，同时发生的是在本地和远程系统之间，创建了一条<u>加密通道</u>（*encrypted tunnel*）。自然地，这条通道用来将本地系统中键入的命令安全地传输到远程系统并将运行结果安全地传输回来。除了这个基本功能之外，SSH 协议允许大多数类型的网络传输在本地和远程系统之间通过加密通道被送达，创建一类<u>虚拟个人网络</u>（VPN virtual private network）。
+>
+> 或许，最常用到这一特性的是允许传输 X 窗口系统的通信。在一个系统上运行 X 服务（即该机器上显示图形用户界面），它可能在远程系统上运行一个 X 客户程序（一个图形应用），并显示在本地系统中。这很容易实现，这里有个例子。假设本地名为 `linuxbox` 的 Linux 系统正运行这 X 服务，我们想要在 `remote-sys` 的远程系统上运行 `xload` 程序，并在本地系统上查看该程序的图形输出，我们可以这么操作：
+>
+> ```bash
+> [me@linuxbox ~]$ ssh -X remote-sys
+> me@remote-sys's password:
+> Last login: Mon Sep 08 13:23:11 2016
+> [me@remote-sys ~]$ xload
+> ```
+>
+> 在远程系统上执行 `xload` 命令之后，其窗口就显示在本地系统中。在有些系统中，你需要用 `-Y` 选项来替代 `-X` 选项。
 
 ### scp 和 sftp
 
+OpenSSH 程序包还包含了两个程序，可以制作通过网络复制文件的 SSH 加密通道。第一个是 `scp` （secure copy），很像 `cp` 程序，用来复制文件。最可留意的差别在于源文件和目标文件的路径名前需要冠以远程主机名，主机名后要加一个冒号字符。例如，如果我们想从远程系统 `remote-sys` 的家目录中复制一个名为 `document.txt` 的文件到本地系统的当前工作目录，可以这么操作：
 
+```bash
+[me@linuxbox ~]$ scp remote-sys:document.txt .
+me@remote-sys's password:
+document.txt     100% 5581    5.5KB/s   00:00
+[me@linuxbox ~]$
+```
+
+和 `ssh` 命令一样，如果远程主机的帐户名称和本地系统的不一致，你可以在远程主机名之前冠以用户名。
+
+```bash
+[me@linuxbox ~]$ scp bob@remote-sys:document.txt .
+```
+
+第二个 SSH 文件拷贝程序是 `sftp`，顾名思义，是一个安全的 `ftp` 程序替代品。`sftp` 和原始 `ftp` 程序用法相像，不过，它使用了 SSH 加密通道，而非如 `ftp` 那样明文传输所有数据。相比传统的 `ftp`，`sftp` 有个重要的优点，它不需要在远程主机上运行 FTP 服务，仅仅需要 SSH 服务。这意味着任何远程主机，只要能用 SSH 客户端连接，就能被用来当作一个 FTP 服务器。这里有个示例会话：
+
+```bash
+[me@linuxbox ~]$ sftp remote-sys
+Connecting to remote-sys...
+me@remote-sys's password:
+sftp> ls
+ubuntu-8.04-desktop-i386.iso
+sftp> lcd Desktop
+sftp> get ubuntu-8.04-desktop-i386.iso
+Fetching /home/me/ubuntu-8.04-desktop-i386.iso to ubuntu-8.04-
+desktop-i386.iso
+/home/me/ubuntu-8.04-desktop-i386.iso 100% 699MB 7.4MB/s 01:35
+sftp> bye
+```
+
+> **技巧：**`sftp` 协议得到很多发行版图形文件管理器的支持。GNOME 和 KDE 中，都可以在 URI 中输入 `sftp://` 开头的路径，操作运行有 SSH 服务的远程主机上的文件。
+
+> **一个 SSH 的 Windows 客户端？**
+>
+> 假设你正坐在 Windows 机器前，但是你需要登录到 Linux 服务器做一些工作，你会做什么？当然是获取一个供 Windows 的 SSH 客户端程序！有好多这样的程序。其中最流行的可能是 Simon Tatham 团队制作的 PuTTY 了。PuTTY 程序显示了一个终端窗口，允许 Windows 用户开启一个在远程主机上的 SSH（或 telnet）会话。该程序还提供 `scp` 和 `sftp` 程序的模拟器。
+>
+> PuTTY 可以在 http://www.chiark.greenend.org.uk/~sgtatham/putty/ 下载。
 
 ## 总结
 
-
+本章中，我们调查了一下大多数 Linux 系统上的网络工具领域。由于 Linux 是如此广泛地使用在服务器和网络应用中，所以安装了很多附加的软件。但是即便是最简单的工具集，也可以执行很多有用的与网络有关的任务。
 
 ## 扩展阅读
 
+- 作为一个广泛（尽管过时）的网络管理，Linux 文档项目提供了 *Linux Network Administrator's Guide*：http://tldp.org/LDP/nag2/index.html
+- 维基百科有很多好的网络相关的文章。这里是一些基本课题：
+  - http://en.wikipedia.org/wiki/Internet_protocol_address
+  - http://en.wikipedia.org/wiki/Host_name
+  - http://en.wikipedia.org/wiki/Uniform_Resource_Identifier
