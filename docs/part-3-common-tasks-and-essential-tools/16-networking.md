@@ -235,23 +235,181 @@ Length: unspecified [text/html]
 11:02:51 (161.75 MB/s) - `index.php' saved [3120]
 ```
 
-程序的许多选项，允许 `wget` 递归式下载、在后台下载（允许你登出但继续下载）、完成一个已下载了部分的文件。这些特性在其优于平均水平的手册页中有很好的记述。
+程序的许多选项，允许 `wget` 递归式下载、在后台下载（允许你登出但继续下载）、完成一个已下载了部分的文件。这些特性在其优异的手册页中有很好的记述。
 
 ## 与远程主机安全通信
 
-很多年来，类 Unix 操作系统
+很多年来，人们都可以通过网络管理类 Unix 操作系统。在早年，在普遍采用互联网之前，有一对流行的程序用来登录远程主机。它们是 `rlogin` 和 `telnet`。然而，这两个程序有着和 `ftp` 一样的致命缺陷，那就是用明文传输所有的通信（包含登录名和密码）。这使得它们在互联网时代显得非常不妥。
 
 ### ssh
 
+为了解决这个问题，发展出了一个名为安全壳的协议（SSH Secure Shell）。SSH 解决了在与远程主机安全通信的两个基本问题：
 
+1. 验证了远程主机所说的它是谁（防止了中间人攻击）。
+2. 加密了本地与远程主机之间的所有通信。
+
+SSH 由两部分组成。一个  SSH 服务端运行在远程主机，监听进入的连接，默认端口号是 22，SSH 客户端运行在本地系统中，以与远程服务器通信。
+
+大多数 Linux 发行版都发布了一个从 OpenBSD 项目中来的名为 OpenSSH 的 SSH 实现。一些发行版（如 Red Hat）默认包含了服务端和客户端的包，有些（如 Ubuntu）则仅包含了客户端。要使系统能接收远程连接，就必须安装有 `OpenSSH-server` 包，且已正确配置并运行，并且（如果系统是在防火墙之后的）要允许 TCP 22 端口进入的网络连接。
+
+> **技巧：**如果你没有可以连接的远程系统，但是又想尝试这些示例，请确保 `OpenSSH-server` 在你的系统中已经安装好了，并使用 `localhost` 作为远程主机名。这样，你的机器就可以自己搭建一个网络连接了。
+
+SSH 客户端程序用来连接远程 SSH 服务器，程序名称也足够适当，就是 `ssh`。要连接名为 `remote-sys` 的远程主机，可以使用如下命令：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys
+The authenticity of host 'remote-sys (192.168.1.4)' can't be established.
+RSA key fingerprint is
+41:ed:7a:df:23:19:bf:3c:a5:17:bc:61:b3:7f:d9:bb.
+Are you sure you want to continue connecting (yes/no)?
+```
+
+首次尝试连接，会显示一条信息，指示不能建立对远程主机的信任。因为此前客户端从未见过该主机。要接受对远程主机的信任，在提示符处键入「yes」。一旦建立连接，就会提示用户输入密码：
+
+```bash
+Warning: Permanently added 'remote-sys,192.168.1.4' (RSA) to the list of known hosts.
+me@remote-sys's password:
+```
+
+正确地输入密码之后，我们会接收到远程系统的 shell 提示符。
+
+```bash
+Last login: Sat Aug 30 13:00:48 2016
+[me@remote-sys ~]$
+```
+
+远程 shell 会话会持续工作，直至用户在远程 shell 提示符处输入 `exit` 关闭远程连接为止。同时恢复本地 shell 会话，本地 shell 提示符重新出现。
+
+在连接到远程系统时，也可以使用不同的用户名。例如，若本地用户 `me` 在远程系统中有一个名为 `bob` 的帐户，则用户 `me` 可以用 `bob` 帐户登录到远程系统：
+
+```bash
+[me@linuxbox ~]$ ssh bob@remote-sys
+bob@remote-sys's password:
+Last login: Sat Aug 30 13:03:21 2016
+[bob@remote-sys ~]$
+```
+
+与之前的状态一样，ssh 会验证远程主机的真实性。如果远程主机没有成功验证，会出现下列信息：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+It is also possible that the RSA host key has just been changed.
+The fingerprint for the RSA key sent by the remote host is
+41:ed:7a:df:23:19:bf:3c:a5:17:bc:61:b3:7f:d9:bb.
+Please contact your system administrator.
+Add correct host key in /home/me/.ssh/known_hosts to get rid of this message.
+Offending key in /home/me/.ssh/known_hosts:1
+RSA host key for remote-sys has changed and you have requested strict
+checking.
+Host key verification failed.
+```
+
+出现这类信息，有两种可能。第一种可能是有人尝试中间人攻击。这种情况很罕见，因为大家都知道 ssh 会这样警告用户。最可能的罪魁祸首，是远程系统已经做了某种变动，例如其操作系统或者 SSH 服务端被重新安装过了。为了安全和保障起见，第一种可能不应该被忽视。当这类信息出现时，总是要与远程系统的管理员检查一下。
+
+在确定此类信息的出现不是恶意的之后，即可以安全地改正来自客户端的问题。即，使用文本编辑器（可以是 `vim`）来移除 `~/.ssh/known_hosts` 文件中废弃的键。在上例中，我们看到这个：
+
+```bash
+Offending key in /home/me/.ssh/known_hosts:1
+```
+
+这意味着在 `known_hosts` 文件中的第一行，包含着一个违规键。删除该行，然后 `ssh` 程序就能从远程系统接收新的身份验证凭据了。
+
+除了能打开一个远程系统的 shell 会话，`ssh` 还允许我们在远程系统上执行单个命令。如，要在名为 `remote-sys` 的远程主机上执行 `free` 命令，并将结果显示在本地系统中，需要这么操作：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys free
+me@twin4's password:
+             total     used     free     shared    buffers     cached
+
+Mem:        775536   507184   268352          0     110068     154596
+-/+ buffers/cache:   242520   533016
+Swap:      1572856        0  1572856
+[me@linuxbox ~]$
+```
+
+可以有更多有趣的方法来使用该技术，如下例中我们在远程系统中执行 `ls` 命令并重定向输出到本地系统中的一个文件：
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys 'ls *' > dirlist.txt
+me@twin4's password:
+[me@linuxbox ~]$
+```
+
+注意上面的命令中使用了单引号。这样做是因为我们不想把路径名扩展到本地机器上，而是希望其在远程系统中执行。同样的，如果我们想将输出重定向到远程机器的上的一个文件时，可以将重定向操作符和文件名放在单引号中。
+
+```bash
+[me@linuxbox ~]$ ssh remote-sys 'ls * > dirlist.txt'
+```
+
+> **使用 SSH 进行隧道连接**
+>
+> 当通过 SSH 连接远程主机时，同时发生的是在本地和远程系统之间，创建了一条<u>加密通道</u>（*encrypted tunnel*）。自然地，这条通道用来将本地系统中键入的命令安全地传输到远程系统并将运行结果安全地传输回来。除了这个基本功能之外，SSH 协议允许大多数类型的网络传输在本地和远程系统之间通过加密通道被送达，创建一类<u>虚拟个人网络</u>（VPN virtual private network）。
+>
+> 或许，最常用到这一特性的是允许传输 X 窗口系统的通信。在一个系统上运行 X 服务（即该机器上显示图形用户界面），它可能在远程系统上运行一个 X 客户程序（一个图形应用），并显示在本地系统中。这很容易实现，这里有个例子。假设本地名为 `linuxbox` 的 Linux 系统正运行这 X 服务，我们想要在 `remote-sys` 的远程系统上运行 `xload` 程序，并在本地系统上查看该程序的图形输出，我们可以这么操作：
+>
+> ```bash
+> [me@linuxbox ~]$ ssh -X remote-sys
+> me@remote-sys's password:
+> Last login: Mon Sep 08 13:23:11 2016
+> [me@remote-sys ~]$ xload
+> ```
+>
+> 在远程系统上执行 `xload` 命令之后，其窗口就显示在本地系统中。在有些系统中，你需要用 `-Y` 选项来替代 `-X` 选项。
 
 ### scp 和 sftp
 
+OpenSSH 程序包还包含了两个程序，可以制作通过网络复制文件的 SSH 加密通道。第一个是 `scp` （secure copy），很像 `cp` 程序，用来复制文件。最可留意的差别在于源文件和目标文件的路径名前需要冠以远程主机名，主机名后要加一个冒号字符。例如，如果我们想从远程系统 `remote-sys` 的家目录中复制一个名为 `document.txt` 的文件到本地系统的当前工作目录，可以这么操作：
 
+```bash
+[me@linuxbox ~]$ scp remote-sys:document.txt .
+me@remote-sys's password:
+document.txt     100% 5581    5.5KB/s   00:00
+[me@linuxbox ~]$
+```
+
+和 `ssh` 命令一样，如果远程主机的帐户名称和本地系统的不一致，你可以在远程主机名之前冠以用户名。
+
+```bash
+[me@linuxbox ~]$ scp bob@remote-sys:document.txt .
+```
+
+第二个 SSH 文件拷贝程序是 `sftp`，顾名思义，是一个安全的 `ftp` 程序替代品。`sftp` 和原始 `ftp` 程序用法相像，不过，它使用了 SSH 加密通道，而非如 `ftp` 那样明文传输所有数据。相比传统的 `ftp`，`sftp` 有个重要的优点，它不需要在远程主机上运行 FTP 服务，仅仅需要 SSH 服务。这意味着任何远程主机，只要能用 SSH 客户端连接，就能被用来当作一个 FTP 服务器。这里有个示例会话：
+
+```bash
+[me@linuxbox ~]$ sftp remote-sys
+Connecting to remote-sys...
+me@remote-sys's password:
+sftp> ls
+ubuntu-8.04-desktop-i386.iso
+sftp> lcd Desktop
+sftp> get ubuntu-8.04-desktop-i386.iso
+Fetching /home/me/ubuntu-8.04-desktop-i386.iso to ubuntu-8.04-
+desktop-i386.iso
+/home/me/ubuntu-8.04-desktop-i386.iso 100% 699MB 7.4MB/s 01:35
+sftp> bye
+```
+
+> **技巧：**`sftp` 协议得到很多发行版图形文件管理器的支持。GNOME 和 KDE 中，都可以在 URI 中输入 `sftp://` 开头的路径，操作运行有 SSH 服务的远程主机上的文件。
+
+> **一个 SSH 的 Windows 客户端？**
+>
+> 假设你正坐在 Windows 机器前，但是你需要登录到 Linux 服务器做一些工作，你会做什么？当然是获取一个供 Windows 的 SSH 客户端程序！有好多这样的程序。其中最流行的可能是 Simon Tatham 团队制作的 PuTTY 了。PuTTY 程序显示了一个终端窗口，允许 Windows 用户开启一个在远程主机上的 SSH（或 telnet）会话。该程序还提供 `scp` 和 `sftp` 程序的模拟器。
+>
+> PuTTY 可以在 http://www.chiark.greenend.org.uk/~sgtatham/putty/ 下载。
 
 ## 总结
 
-
+本章中，我们调查了一下大多数 Linux 系统上的网络工具领域。由于 Linux 是如此广泛地使用在服务器和网络应用中，所以安装了很多附加的软件。但是即便是最简单的工具集，也可以执行很多有用的与网络有关的任务。
 
 ## 扩展阅读
 
+- 作为一个广泛（尽管过时）的网络管理，Linux 文档项目提供了 *Linux Network Administrator's Guide*：http://tldp.org/LDP/nag2/index.html
+- 维基百科有很多好的网络相关的文章。这里是一些基本课题：
+  - http://en.wikipedia.org/wiki/Internet_protocol_address
+  - http://en.wikipedia.org/wiki/Host_name
+  - http://en.wikipedia.org/wiki/Uniform_Resource_Identifier
