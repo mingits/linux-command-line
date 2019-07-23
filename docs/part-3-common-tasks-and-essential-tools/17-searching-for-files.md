@@ -361,19 +361,137 @@ find ~ -type f -name 'foo*' -exec ls -l '{}' +
 
 ### xargs
 
+`xargs` 命令执行一个有趣的功能。它从标准输入接收输入，将其转换为一个指定命令的参数列表。在我们的例子中，会这样使用它：
 
+```bash
+find ~ -type f -name 'foo*' -print | xargs ls -l
+-rwxr-xr-x 1 me me 224 2007-10-29 18:44 /home/me/bin/foo
+-rw-r--r-- 1 me me   0 2016-09-19 12:53 /home/me/foo.txt
+```
+
+这里我们看到 `find` 命令的输出被管道输入到 `xargs`，反过来，为 `ls` 命令构建一个参数列表，然后执行。
+
+> **注意：**可以被置入命令行的参数数量是非常巨大的，没有任何限制。所以可能会制造一个太长的命令，以至于 shell 不能接受。当一条命令行超出了系统支持的最大长度时，`xargs` 以最大长度的参数执行指定命令，然后重复该进程，直到穷竭标准输出。要查看命令行的最大长度，以 `--show-limits` 为参数执行 `xargs`。
+
+> **处理有趣的文件名**
+>
+> 类 Unix 系统允许在文件名中存在空格（甚至是换行符！）。这会使得像 `xargs` 这样的程序在给其它程序构建参数列表的时候出现问题。内嵌的空格会被当作一个分隔符，导致命令将每个被空格分隔的词语作为一个参数。要克服这点，`find` 和 `xargs` 允许用 `null` 字符作为参数分隔。一个 `null` 字符在 ASCII 中被定义为数字 0（相反的，例如空格字符，则在 ASCII 中被定义为数字 32）。`find` 命令提供一个行为 `-print0`，以产生 `null` 分隔符的输出，而 `xargs` 命令则有 `--null`（或 `-0`）选项，以接受 `null` 分隔的输入。这个有个例子：
+>
+> ```bash
+> find ~ -iname '*.jpg' -print0 | xargs --null ls -l
+> ```
+>
+> 使用该技术，我们可以保证所有文件，甚至那些文件名中内嵌有空格的文件都能得到正确地处理。
 
 ### 回到游戏场
 
+是时候将 `find` 置于一些（几乎）实际用途中了。来建立一个游戏场，并试验一些我们已经学到的知识。
 
+首先，建立一个游戏场，并建立许多子目录和文件。
+
+```bash
+[me@linuxbox ~]$ mkdir -p playground/dir-{001..100}
+[me@linuxbox ~]$ touch playground/dir-{001..100}/file-{A..Z}
+```
+
+命令行的神奇威力！用这两条命令，我们创建了 `playground` 目录，内含 100 个子目录，每个子目录包含 26 个空文件。请用图形界面试试！
+
+我们完成这个魔法所采用的方法，涉及一个熟悉的命令（`mkdir`）和一个奇特的 shell 扩展（大括号），还有一个新命令，`touch`。当 `mkdir` 和 `-p` 选项（使得 `mkdir` 可以创建指定路径的上级目录）以及大括号扩展组合在一起的时候，我们就能创建 100 个子目录了。
+
+`touch` 目录通常用来设置或更新访问、变更、修改文件的时间。然而，如果一个文件名参数是一个不存在的文件时，会创建一个空文件。
+
+在我们的游戏场中，我们创建了 100 个名为 `file-A` 的文件实例。让我们找到它们。
+
+```bash
+[me@linuxbox ~]$ find playground -type f -name 'file-A'
+```
+
+注意，不同于 `ls`，`find` 不会产生一个排序好的结果。其顺序取决于存储设备的布局。我们可以通过这个方法确认实际上有 100 个文件实例：
+
+```bash
+[me@linuxbox ~]$ find playground -type f -name 'file-A' | wc -l
+100
+```
+
+接下来，基于修改时间来看一下找到的文件。这有助于创建备份文件或者按时间顺序组织文件。首先，将创建一个参考文件，以比较修改时间。
+
+```bash
+[me@linuxbox ~]$ touch playground/timestamp
+```
+
+上述命令创建了一个名为 `timestamp` 的空文件，并将其修改时间设置为当前时间。我们可以用另一个简便的命令 `stat` 来验证，它是一种不同版本的 `ls`。`stat` 命令显示系统内容，理解文件及其属性。
+
+```bash
+[me@linuxbox ~]$ stat playground/timestamp
+File: `playground/timestamp'
+Size: 0          Blocks: 0         IO Block: 4096 regular empty file
+Device: 803h/2051d Inode: 14265061 Links: 1
+Access: (0644/-rw-r--r--) Uid: ( 1001/ me) Gid: ( 1001/ me)
+Access: 2018-10-08 15:15:39.000000000 -0400
+Modify: 2018-10-08 15:15:39.000000000 -0400
+Change: 2018-10-08 15:15:39.000000000 -0400
+```
+
+若再次运行 `touch` 并用 `stat` 检查，会看到该文件的时间已经更新了。
+
+```bash
+[me@linuxbox ~]$ touch playground/timestamp
+[me@linuxbox ~]$ stat playground/timestamp
+File: `playground/timestamp'
+Size: 0          Blocks: 0         IO Block: 4096 regular empty file
+Device: 803h/2051d Inode: 14265061 Links: 1
+Access: (0644/-rw-r--r--) Uid: ( 1001/ me) Gid: ( 1001/ me)
+Access: 2018-10-08 15:23:33.000000000 -0400
+Modify: 2018-10-08 15:23:33.000000000 -0400
+Change: 2018-10-08 15:23:33.000000000 -0400
+```
+
+接下来，用 `find` 更新一些游戏场文件。
+
+```bash
+[me@linuxbox ~]$ find playground -type f -name 'file-B' -exec touch '{}' ';'
+```
+
+这会更新所有游戏场里名为 `file-B` 的文件。然后，我们通过与参考文件 `timestamp` 比较，用 `find` 识别处更新过的文件。
+
+```bash
+[me@linuxbox ~]$ find playground -type f -newer playground/timestamp
+```
+
+结果包含了 100 个 `file-B` 的实例。因为我们在更新了 `timestamp` 文件之后才执行 `touch` 更新了游戏场里所有名为 `file-B` 的文件，它们现在就比 `timestamp` 文件更新，因此能被 `-newer` 测试所识别。
+
+最后，让我们回到之前执行过的错误权限的测试，将其应用到游戏场中。
+
+```bash
+[me@linuxbox ~]$ find playground \( -type f -not -perm 0600 \) -or \(-type d -not -perm 0700 \)
+```
+
+该命令列出游戏场中所有 100 个目录和 2,600 个文件（还包括 `timestamp` 文件和 `playground` 目录自身，共计 2,702 项），因为没有一个是符合我们「正确权限」的定义。用我们所学的操作符和行为的知识，可以加一些行为到命令行中，以便将新的权限应用到游戏场中的文件和目录。
+
+```bash
+[me@linuxbox ~]$ find playground \( -type f -not -perm 0600 -exec chmod 0600 '{}' ';' \) -or \( -type d -not -perm 0700 -exec chmod 0700 '{}' ';' \)
+```
+
+在日常操作中，我们或许会觉得写两条命令会比写这样一个大型组合命令更简单，一条给目录，另一条给文件，但是这个组合命令很好地让我们知道，我们可以通过这个方式实现。这里的重点是理解如何一起使用操作符和行为，以执行有用的任务。
 
 ### 选项
 
+最后，来看选项。选项用来控制 `find` 的搜索范围。在构建 `find` 表达式时，它们可以被包含在其它测试和行为中。表 17-7 列出了最常用的 `find` 选项。
 
+表 17-7：`find` 选项
+
+| 选项               | 描述                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| `-depth`           | 指导 `find` 先处理目录中的文件，再处理目录自身。当指定 `-delete` 行为时，会自动应用该选项。 |
+| `-maxdepth levels` | 当执行测试和行为时，设置 `find` 下探到目录树中的最大层次数。 |
+| `-mindepth levels` | 当执行测试和行为时，设置 `find` 下探到目录树中的最小层次数。 |
+| `-mount`           | 指导 `find` 不要遍历加载在别的文件系统上的目录。             |
+| `-noleaf`          | 指导 `find` 不要基于类 Unix 文件系统的假设来优化其检索。当扫描 DOS/Windows 和 CD-ROM 文件系统时，需要该选项。 |
 
 ## 总结
 
-
+易于发现，`locate` 较简单，而 `find` 较复杂。它们各有其用途。花点时间来探索 `find` 的诸多特性。经常使用，可以增进你对 Linux 文件系统操作的理解。
 
 ## 扩展阅读
 
+- `locate`，`updatedb`，`find`，和 `xargs` 程序，都是 GNU 项目的 *findutils* 包中的部分。GNU 项目提供了一个扩展在线文档的网站，质量非常好，如果你在高度安全环境中使用这些程序的话，应该读一下：http://www.gnu.org/software/findutils/
