@@ -168,7 +168,91 @@ tar mode[options] pathname...
 [me@linuxbox ~]$ tar cf playground.tar playground
 ```
 
-该命令创建了一个名为 `playground.tar` 的 tar 存档，包含了整个游戏场目录层次。可以看到模式和 `f` 选项，
+该命令创建了一个名为 `playground.tar` 的 tar 存档，包含了整个游戏场目录层次。可以看到模式（`c`）和用来指定 tar 存档文件名的 `f` 选项，二者可以连接在一起，也不需要一个前置短横（`-`）。记住，必须先指定模式，模式总是在其他选项之前。
+
+要列出存档内容，可以这么做：
+
+```bash
+[me@linuxbox ~]$ tar tf playground.tar
+```
+
+要看更详细的清单，可以加个 `v` 选项（verbose）。
+
+```bash
+[me@linuxbox ~]$ tar tvf playground.tar
+```
+
+现在，让我们解压游戏场到一个新处所。来创建一个新的目录，`foo`，切换到该目录然后解压 tar 存档。
+
+```bash
+[me@linuxbox ~]$ mkdir foo
+[me@linuxbox ~]$ cd foo
+[me@linuxbox foo]$ tar xf ../playground.tar
+[me@linuxbox foo]$ ls
+playground
+```
+
+如果我们检查 `~/foo/playground` 的内容，可以看到存档已经得以成功地安置，创建了一个原始文件的精确的副本。这里有个警告。除非我们正以超级用户的身份在操作，否则从存档中解压的文件和目录的属主就会改成执行恢复操作的用户，而非原始的属主。
+
+另一个有趣的 tar 的行为，是其处理存档中的路径名。默认的路径名是相对路径而非绝对路径。tar 仅仅简单地在创建存档时，将前置的 `/` 从路径名中删掉。来演示一下，首先将重建存档，这次则指定了绝对路径。
+
+```bash
+[me@linuxbox foo]$ cd
+[me@linuxbox ~]$ tar cf playground2.tar ~/playground
+```
+
+记住 `~/playground` 会在我们按下 `Enter` 键后扩展为 `/home/me/playground`，所以我们会得到在演示中得到一个绝对路径。接下来，我们来解压这个存档，看看会发生什么。
+
+```bash
+[me@linuxbox ~] cd foo
+[me@linuxbox foo] tar xf ../playground2.tar
+[me@linuxbox foo]$ ls
+home playground
+[me@linuxbox foo]$ ls home
+me
+[me@linuxbox foo]$ ls home/me
+playground
+```
+
+这里我们可以看到，当我们解压第二个存档时，它在相对于我们的当前工作目录 `~/foo` 而不是相对于根目录，重新创建了 `home/me/playground` 目录，就像和绝对路径一样。这种工作方式可能看起来很奇怪，但是实际上这种方式会更有用，因为这允许我们解压存档到任意位置，而非被强制解压到它们的原始位置。用包含详细信息选项 `v` 来重复一下这个练习，会更清楚地了解发生了什么。
+
+来考虑一个假象的不过也是实际的 tar 行为。想象我们想要从一个系统中复制家目录及其内容到另一个系统中，我们有一个大容量 USB 硬盘可以用来传输。在现代 Linux 系统中，该驱动器是「自动」被加载到 `/media` 目录中的。同时，假设在加载时，该磁盘的卷标是 `BigDisk`。要制作 tar 存档的话，我们可以这么做：
+
+```bash
+[me@linuxbox ~]$ sudo tar cf /media/BigDisk/home.tar /home
+```
+
+在写入 tar 文件之后，卸载驱动器，并加载到第二台计算机中。U 盘有又一次被加载为 `/media/BigDisk`。要解压这个存档，可以这么做：
+
+```bash
+[me@linuxbox2 ~]$ cd /
+[me@linuxbox2 /]$ sudo tar xf /media/BigDisk/home.tar
+```
+
+这里重要的是，我们首先要切换到 `/`，以便解压是相对于根目录的，因为存档中的所有路径都是相对的。
+
+当解压一个存档时，可以限制哪些文件从存档中解压出来。例如，假设我们想从存档中解压出单个文件，可以这样去完成：
+
+```bash
+tar xf archive.tar pathname
+```
+
+通过添加尾随的 `pathname`，tar 就会仅仅恢复那个指定的文件。还可以指定多个路径名。注意，路径名必须是存储在存档中完整准确的相对路径名。当指定路径名时，通配符是不受支持的，然而，GNU 版本的 tar （大多数常见 Linux 发行版中的版本）通过 `--wildcards` 选项可以支持通配符。这里可以用之前的游戏场文件举例如下：
+
+```bash
+[me@linuxbox ~]$ cd foo
+[me@linuxbox foo]$ tar xf ../playground2.tar --wildcards 'home/me/playground/dir-*/file-A'
+```
+
+这条命令会仅仅解压匹配指定路径名中包含通配符 `dir-*` 的文件。
+
+tar 经常被用来和 `find` 结合使用来制作存档。在下例中，将用到 `find` 来产生一个文件集，并包含到一个存档中。
+
+```bash
+[me@linuxbox ~]$ find playground -name 'file-A' -exec tar rf playground.tar '{}' '+'
+```
+
+
 
 ### zip
 
