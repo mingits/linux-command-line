@@ -252,11 +252,49 @@ tar 经常被用来和 `find` 结合使用来制作存档。在下例中，将�
 [me@linuxbox ~]$ find playground -name 'file-A' -exec tar rf playground.tar '{}' '+'
 ```
 
+这里，我们用 `find` 匹配所有在 `playground` 中的 `file-A` 文件，然后用 `-exec` 行为用附加模式（`r`）调用 `tar`，添加匹配的文件到 `playground.tar` 存档中。
 
+ 和 `find` 一起使用 `tar` 是一个创建增量备份的好方法，无论是对一个目录树还是对整个系统而言。通过 `find` 找到比某个时间戳文件更新的文件，我们可以创建一个存档，仅包含那些比上次存档更新的文件。假定那个时间戳文件在每次存档后得以正确地更新。
+
+`tar` 还可以使用标准输入输出。这里是个详细的例子：
+
+```bash
+[me@linuxbox foo]$ cd
+[me@linuxbox ~]$ find playground -name 'file-A' | tar cf - --files-from=- | gzip > playground.tgz
+```
+
+本例中，用 `find` 程序产生了一个匹配文件清单，并管道输出到 `tar`。如果指定了文件名 `-`，则根据需要将其视为标准输入或输出。（顺便说句，这种使用 `-` 表示标准输入输出的惯例也被许多其他程序使用）。`--files-from` 选项（它还可以写成 `-T`）导致 `tar` 从一个文件而非命令行中读取路径名列表。最后，由 `tar` 产生的存档被管道输出到 `gzip` 创建了一个压缩存档包 `playground.tgz`。`.tgz` 扩展名通常是代表由 gzip 压缩后的 tar 文件。有时也用 `.tar.gz` 来表示。
+
+当我们使用外部 `gzip` 程序制作压缩存档时，现代版本的 GNU `tar` 同时支持 `gzip` 和 `bzip2`，分别通过 `z` 和 `j` 选项直接调用。通过之前的示例为基础，我们可以将其简化为：
+
+```bash
+[me@linuxbox ~]$ find playground -name 'file-A' | tar czf playground.tgz -T -
+```
+
+如果想用 `bzip2` 压缩，可以用下面的语句：
+
+```bash
+[me@linuxbox ~]$ find playground -name 'file-A' | tar cjf playground.tbz -T -
+```
+
+简单的从 `z` 改到 `j`（同时将输出文件的扩展明改成 `.tbz` 来指示其为 `bzip2` 压缩文件），就激活了 `bzip2` 压缩文件了。
+
+另外一个用 tar 命令标准输入输出的有趣的用途，涉及到通过网络在系统间传输文件。想象我们有两台类 Unix 机器，都安装有 `tar` 和 `ssh`。在这个场景中，我们可以从一个远程系统（名为 `remote-sys`）中传输一个目录到我们的本地系统中。
+
+```bash
+[me@linuxbox ~]$ mkdir remote-stuff
+[me@linuxbox ~]$ cd remote-stuff
+[me@linuxbox remote-stuff]$ ssh remote-sys 'tar cf - Documents' | tar xf -
+me@remote-sys’s password:
+[me@linuxbox remote-stuff]$ ls
+Documents
+```
+
+这里，我们可以从远程系统中复制一个名为 `Documents` 的目录到本地系统中的 `remote-stuff` 目录中。怎样做到的呢？首先，通过 `ssh`  运行远程系统中的 `tar` 程序。我们使用 `ssh` 通过网络远程执行一个程序，并在本地系统中「查看」结果——远程系统中的标准输出被送到本地系统中供查看。我们可以通过让 `tar` 创建一个存档（`c` 模式）并将其发送到标准输出，而不是文件（带有短横参数的 `f` 选项）从而通过 `ssh` 提供的加密隧道传输存档到本地系统。在本地系统中，我们从标准输入（还是带有短横参数的 `f` 选项）执行 `tar` 解压一个存档（`x` 模式）。
 
 ### zip
 
-
+`zip` 程序既是压缩工具也是存档工具。
 
 ## 同步文件和目录
 
