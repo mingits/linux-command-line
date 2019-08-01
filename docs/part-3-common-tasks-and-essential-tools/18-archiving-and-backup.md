@@ -126,7 +126,7 @@ foo.txt.gz:   OK
 
 > **不要强制压缩**
 >
-> 我偶尔看到人民尝试压缩一个已经由有效压缩算法压缩过的文件，如这样的：
+> 我偶尔看到人们尝试压缩一个已经由有效压缩算法压缩过的文件，如这样的：
 >
 > **`gzip picture.jpg`**
 >
@@ -294,19 +294,220 @@ Documents
 
 ### zip
 
-`zip` 程序既是压缩工具也是存档工具。
+`zip` 程序既是压缩工具也是存档工具。程序所用来读写的文件格式是 Windows 用户所熟悉的 `.zip`。然而在 Linux 中，`gzip` 是优越的压缩程序，`bzip2` 则紧跟其后。
+
+最常见的基本用法，`zip` 是这样被调用的：
+
+```bash
+zip options zipfile file...
+```
+
+例如，要制作一个游戏场的 zip 存档，是这样做的：
+
+```bash
+[me@linuxbox ~]$ zip -r playground.zip playground
+```
+
+除非我们包含 `-r` 选项用以递归，否则存档将仅包含 `playground` 目录（而不含其内容）。尽管 `.zip` 扩展名是会自动添加的，我们还是显式地包含这个扩展名。
+
+在创建 zip 存档时，`zip` 将自然显示一系列这样的信息：
+
+```bash
+adding: playground/dir-020/file-Z (stored 0%)
+adding: playground/dir-020/file-Y (stored 0%)
+adding: playground/dir-020/file-X (stored 0%)
+adding: playground/dir-087/ (stored 0%)
+adding: playground/dir-087/file-S (stored 0%)
+```
+
+这些信息显示每个文件加到存档中的状态。`zip` 用两种存储方式中的一种将文件添加到存档中：「store」则不压缩，如上所示；「deflate」则压缩。在存储方式后的数字指示压缩量。由于游戏场仅包含空文件，所以没有对其内容执行压缩。
+
+解压 `zip` 文件，只需要简单的使用 `unzip` 程序。
+
+```bash
+[me@linuxbox ~]$ cd foo
+[me@linuxbox foo]$ unzip ../playground.zip
+```
+
+关于 `zip`，（相对与 `tar`）要注意的是，如果指定的是一个存在的存档，将会更新该存档，而非替换。这意味着已存在的存档得以保留，新的文件会被添加，重名匹配的文件将会被替换。
+
+可以对 `unzip` 指定文件名，以便有选择地将其从 zip 存档中列表和解压出来。
+
+```bash
+[me@linuxbox ~]$ unzip -l playground.zip playground/dir-087/file-Z
+Archive: ../playground.zip
+  Length    Date   Time    Name
+--------    ----   ----    ----
+       0  10-05-16 09:25   playground/dir-087/file-Z
+--------                   -------
+       0                   1 file
+[me@linuxbox ~]$ cd foo
+[me@linuxbox foo]$ unzip ../playground.zip playground/dir-087/file-Z
+Archive: ../playground.zip
+replace playground/dir-087/file-Z? [y]es, [n]o, [A]ll, [N]one, [r]ename: y
+ extracting: playground/dir-087/file-Z
+```
+
+使用 `-l` 选项，让 `unzip` 仅仅列出存档中的内容，而不解压文件。如果没有指定文件，`unzip` 就会列出存档中的所有文件。可以加上 `-v` 选项以增加列表的详细程度。注意，当存档解压过程中与现有文件冲突时，在替换文件前会提示用户。
+
+和 `tar` 一样，`zip` 可以使用标准输入输出，虽然它的实现有点不太有用。可以通过 `-@` 选项管道输入给 `zip` 一个文件名列表。
+
+```bash
+[me@linuxbox foo]$ cd
+[me@linuxbox ~]$ find playground -name "file-A" | zip -@ file-A.zip
+```
+
+我们用 `find` 生成了一个文件列表，匹配测试 `-name "file-A"`，并将其管道输入给 `zip`，创建一个 `file-A.zip` 存档，内含所选文件。
+
+`zip` 还支持将其输出写到标准输出，但是用处不大，因为很少有程序可以用到这类输出。不幸的是，`unzip` 程序不能接受标准输入。这可以防止 `zip` 和 `unzip` 一起使用以执行如 `tar` 般的网络文件复制功能。
+
+然而 `zip` 可以接受标准输入，所以可以用来压缩其它程序的输出。
+
+```bash
+[me@linuxbox ~]$ ls -l /etc/ | zip ls-etc.zip -
+ adding: - (deflated 80%)
+```
+
+本例中，我们将 `ls` 的输出管道输入到 `zip`。和 `tar` 一样，`zip` 将尾随的短横（`-`）解释为「将标准输入作为输入文件」。
+
+当 `-p`（代表 pipe）被指定时，`unzip` 程序允许将其输出送到标准输出。
+
+```bash
+[me@linuxbox ~]$ unzip -p ls-etc.zip | less
+```
+
+我们接触到了一些 `zip/unzip` 能做的基本事务。两者都有许多参数，使其得以更灵活，尽管有些是特定于其它系统平台。二者的手册页都相当完美，包含了一些有用的示例。然而，这些程序的主要用途还是和 Windows 系统交换文件，在 Linux 上压缩和存档，还是 `tar` 和 `gzip` 最常用。
 
 ## 同步文件和目录
 
+维护系统备份的一个常用策略是，保持一个或多个目录和与另一处所——无论是本地系统（通常是可移动存储）还是远程系统——的目录（或多个目录）同步。例如，我们可以有一份正在开发中的网站本地拷贝，不时地将其同步到远程网站服务器上。
 
+在类 Unix 世界中，这类任务首选的工具是 `rsync`。该程序通过 <u>rsync 远程更新协议</u>（*rsync remote-update protocol*）同步本地和远程目录，允许 `rsync` 快速检测两处目录间的差异并执行最小量的复制需求，以实现两者同步。这使得 `rsync` 相对于其它种类的复制程序更快速而经济。
 
-### 使用 rsync 跨越网络
+`rsync` 调用方法如下：
 
+```bash
+rsync options source destination
+```
 
+`source` 和 `destination` 是下列之一：
+
+- 本地文件或目录
+- 远程文件或目录，格式如 *[user@]host:path*
+- 用 URI 指定的远程 rsync 服务器，如 *rsync://[user@]host[:port]/path*
+
+注意，无论源或目的地必须有一个是本地文件。不支持远程到远程的复制。
+
+来对一些本地文件尝试一下 `rsync`。首先清理一下 `foo` 目录。
+
+```bash
+[me@linuxbox ~]$ rm -rf foo/*
+```
+
+下一步，同步 `playground` 目录到 `foo` 中相应的拷贝。
+
+```bash
+[me@linuxbox ~]$ rsync -av playground foo
+```
+
+我们加了 `-a` 选项（archiving，以递归执行且保存文件属性）和 `-v` 选项（详细输出），以便在 `foo` 目录中制作一个 `playground` 目录的<u>镜像</u>（*mirror*）。当命令运行后，我们将看到文件和目录已经复制好了。最后可以看到一条摘要信息，只是执行复制的量：
+
+```bash
+sent 135759 bytes received 57870 bytes 387258.00 bytes/sec
+total size is 3230 speedup is 0.02
+```
+
+如果再次运行命令，会看到不同的结果。
+
+```bash
+[me@linuxbox ~]$ rsync -av playground foo
+building file list ... done
+
+sent 22635 bytes received 20 bytes 45310.00 bytes/sec
+total size is 3230 speedup is 0.14
+```
+
+注意这次没有列出文件。因为 `rsync` 检测到 `~/playground` 和 `~/foo/playground` 两者之间没有差异，所以不需要复制任何文件。如果我们修改了 `playground` 中的一个文件再运行 `rsync`：
+
+```bash
+[me@linuxbox ~]$ touch playground/dir-099/file-Z
+[me@linuxbox ~]$ rsync -av playground foo
+building file list ... done
+playground/dir-099/file-Z
+sent 22685 bytes received 42 bytes 45454.00 bytes/sec
+total size is 3230 speedup is 0.14
+```
+
+我们看到 `rsync` 检测到变化，并仅仅复制了更新过的文件。
+
+当我们指定一个 `rsync` 源时，这是一个微妙且有用的特性。来考虑两个目录。
+
+```bash
+[me@linuxbox ~]$ ls
+source        destination
+```
+
+`source` 目录中包含一个 `file1` 的文件，`destination` 目录则是空的。如果执行备份：
+
+```bash
+[me@linuxbox ~]$ rsync source destination
+```
+
+然后 `rsync` 将 `source` 复制进了 `destination`。
+
+```bash
+[me@linuxbox ~]$ ls destination
+source
+```
+
+然而，如果在源目录名附加一个 `/`，则 `rsync` 只会复制源目录中的内容，而不会复制目录自身。
+
+```bash
+[me@linuxbox ~]$ rsync source/ destination
+[me@linuxbox ~]$ ls destination
+file1
+```
+
+这就很方便，如果我们只想复制目录中的内容而不想在目的目录中创建另一层目录。我们可以将其结果想成 `source/*`，但是这种方法会复制源目录中的所有文件，也包含隐藏文件。
+
+作为一个实际的例子，让我们考虑一下我们之前用过 `tar` 的虚拟外部硬盘。如果再次加载该驱动器到系统中的 `/media/BigDisk`，可以执行有用的系统备份，首先在外部存储中创建 `/backup` 目录，然后用 `rsync` 从系统中复制最重要的东西到外部存储。
+
+```bash
+[me@linuxbox ~]$ mkdir /media/BigDisk/backup
+[me@linuxbox ~]$ sudo rsync -av --delete /etc /home /usr/local /media/BigDisk/backup
+```
+
+本例中，从系统中复制了 `/etc`、`/home`、`/usr/local` 到虚拟外部存储设备。我们加了 `--delete` 选项，以移除那些已不存在于源设备中、但存在于备份设备中的文件（当第一次备份时这无关紧要，但是在后续备份中会有用）。重复加载外部存储、运行 `rsync` 命令这个过程是一个保持小型系统备份的有用（但不理想）的方法。当然，别名也会在这里很有帮助。可以在 `.bashrc` 中创建别名以提供此功能。
+
+```bash
+alias backup='sudo rsync -av --delete /etc /home /usr/local /media/BigDisk/backup'
+```
+
+现在我们所需做的仅仅是加载外部存储并运行 `backup` 命令以执行任务了。
+
+### 通过网络使用 rsync
+
+`rsync` 真正漂亮的一个好处是可以通过网络复制文件。毕竟，`r` 代表的是 `remote`。可以通过两种方式实现远程复制。第一种方式是通过远程 shell 程序登录另一个安装有 `rsync` 的系统。假设在本地网络中有另一个系统，有很大的可用磁盘空间，我们想用这个远程系统替代外部存储来执行备份操作。假设其已经有一个目录 `/backup`，可供我们送达我们的文件，我们可以这么做：
+
+```bash
+[me@linuxbox ~]$ sudo rsync -av --delete --rsh=ssh /etc /home /usr/local remote-sys:/backup
+```
+
+我们做了两处改动来促成网络拷贝。首先，我们加上了 `--rsh=ssh` 选项，指导 `rsync` 使用 `ssh` 程序作为其远程 shell。通过这种方法，我们可以用 ssh 加密通道将本地系统的数据传输到远程主机。其次，我们通过在目的路径前加前缀的方法，指定了远程主机名（本例中的远程主机名是 `remote-sys`）。
+
+使用 `rsync` 通过网络同步文件的第二种途径是使用 <u>rsync 服务</u>（*rsync server*）。可以配置 `rsync` 为一个守护进程，监听进入的同步请求。这样做通常是允许镜像一个远程系统。例如，Red Hat Software 为其 Fedora 发行版维护了一个正在开发的大型软件包仓库。在发行版发行周期的测试阶段，镜像此收藏集，会非常有用。因为在仓库中的文件经常变更（通常一天内就变动多次），希望通过定期同步来维护本地镜像，而不是通过批量复制仓库。其中一个仓库保存在杜克大学，我们可以用本地的 `rsync` 和他们的 `rsync` 服务器来实现镜像：
+
+```bash
+[me@linuxbox ~]$ mkdir fedora-devel
+[me@linuxbox ~]$ rsync -av –delete rsync://archive.linux.duke.edu/fedora/linux/development/rawhide/Everything/x86_64/os/ fedora-devel
+```
+
+本例中，用到了远程 `rsync` 服务的 URI，由协议（`rsync://`）和其后的远程主机（`archive.linux.duke.edu`）及仓库路径组成。
 
 ## 总结
 
-
+我们已经看到在 Linux 和类 Unix 系统中常用的压缩和存档程序。要存档文件，`tar/gzip` 组合是 Linux 上的首选方式，`zip/unzip` 则是为了和 Windows 系统互相兼容。最后，我们学习了 `rsync` 程序（一个个人爱好），非常方便跨系统高效同步文件和目录。
 
 ## 扩展阅读
 
+- 这里所讨论的所有命令，在手册页中有非常清楚和有用的示例。另外，GNU 项目有很好的关于它的版本的 `tar` 在线手册。可以在这里找到：http://www.gnu.org/software/tar/manual/index.html
